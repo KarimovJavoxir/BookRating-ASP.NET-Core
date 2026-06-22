@@ -18,8 +18,8 @@ Use this stack unless the user explicitly changes it:
 * PostgreSQL
 * Entity Framework Core
 * Npgsql EF Core provider
-* PostgreSQL-backed search for now
-* Meilisearch integration later through backend abstraction
+* Meilisearch-backed search through backend abstraction
+* PostgreSQL fallback search when configured
 * REST API
 * Swagger/OpenAPI for development
 * xUnit for focused backend tests
@@ -52,15 +52,16 @@ Implemented:
 * explicit EF Core entity configurations;
 * initial PostgreSQL migration;
 * development seed data;
-* REST endpoints for books, search, and ratings;
-* PostgreSQL search behind `IBookSearchService`;
+* REST endpoints for book list/details/search/create/update/delete and ratings;
+* Meilisearch search behind `IBookSearchService`;
+* book indexing behind `IBookIndexingService`;
+* PostgreSQL fallback search through `PostgresBookSearchService`;
 * CORS for `http://localhost:5173`;
 * Swagger UI in development;
 * basic application service tests.
 
 Not implemented yet:
 
-* Meilisearch;
 * authentication;
 * admin panel;
 * borrowing, reservation, inventory, payment, notification, or user-role modules.
@@ -76,7 +77,8 @@ Core features:
 * store books;
 * list books;
 * get book details;
-* search books through PostgreSQL initially;
+* create, update, and delete books;
+* search books through Meilisearch, with PostgreSQL fallback when configured;
 * submit book rating;
 * calculate average rating;
 * count ratings;
@@ -258,18 +260,13 @@ Implemented endpoints:
 GET    /api/books
 GET    /api/books/{id}
 GET    /api/books/search?q=...
+POST   /api/books
+PUT    /api/books/{id}
+DELETE /api/books/{id}
 POST   /api/books/{id}/ratings
 ```
 
 Do not add extra endpoints unless they are useful for the diploma demo or explicitly requested.
-
-Optional endpoints, only if needed later for demo/admin work:
-
-```text
-POST   /api/books
-PUT    /api/books/{id}
-DELETE /api/books/{id}
-```
 
 Do not implement authentication-protected admin behavior until authentication is explicitly requested.
 
@@ -320,21 +317,23 @@ Reject invalid requests with clear validation errors.
 Current implementation:
 
 * `IBookSearchService` is defined in Application;
+* `IBookIndexingService` is defined in Application;
+* `MeilisearchBookSearchService` is defined in Infrastructure;
+* `MeilisearchBookIndexingService` is defined in Infrastructure;
 * `PostgresBookSearchService` is defined in Infrastructure;
-* search uses PostgreSQL-compatible EF Core query with `EF.Functions.ILike`;
+* Meilisearch search checks title, author, category, and description;
+* PostgreSQL fallback search uses EF Core query with `EF.Functions.ILike`;
 * search checks title, author, and category;
 * empty query is rejected at the API boundary.
 
-Later Meilisearch integration should:
+Book index synchronization:
 
-* keep the `IBookSearchService` abstraction;
-* add a new backend-side implementation;
-* index books;
-* update index when books are created or updated;
-* keep Meilisearch credentials only in backend configuration;
-* never expose admin/master keys to frontend.
+* create and update save to PostgreSQL, then call `IBookIndexingService.IndexBookAsync`;
+* delete saves the PostgreSQL delete, then calls `IBookIndexingService.DeleteBookAsync`;
+* rating submission saves the rating, then re-indexes the book so rating statistics in search stay current;
+* Meilisearch sync failures must be logged and must not roll back successful PostgreSQL saves.
 
-Do not install or configure Meilisearch until explicitly requested.
+Keep Meilisearch credentials only in backend configuration. Never expose admin/master keys to frontend.
 
 ## CORS
 

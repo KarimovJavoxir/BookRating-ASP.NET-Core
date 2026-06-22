@@ -1,11 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "Y3rvA1PiXWo=",
+  "dgSpecHash": "HoNP0p+UxXg=",
   "success": true,
   "projectFilePath": "C:\\Users\\Javokhir\\Downloads\\Study\\Diplom ishi\\src\\backend\\tests\\BookRatingSystem.Tests\\BookRatingSystem.Tests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Javokhir\\.nuget\\packages\\coverlet.collector\\6.0.4\\coverlet.collector.6.0.4.nupkg.sha512",
     "C:\\Users\\Javokhir\\.nuget\\packages\\microsoft.codecoverage\\17.14.1\\microsoft.codecoverage.17.14.1.nupkg.sha512",
+    "C:\\Users\\Javokhir\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\10.0.9\\microsoft.extensions.dependencyinjection.abstractions.10.0.9.nupkg.sha512",
     "C:\\Users\\Javokhir\\.nuget\\packages\\microsoft.net.test.sdk\\17.14.1\\microsoft.net.test.sdk.17.14.1.nupkg.sha512",
     "C:\\Users\\Javokhir\\.nuget\\packages\\microsoft.testplatform.objectmodel\\17.14.1\\microsoft.testplatform.objectmodel.17.14.1.nupkg.sha512",
     "C:\\Users\\Javokhir\\.nuget\\packages\\microsoft.testplatform.testhost\\17.14.1\\microsoft.testplatform.testhost.17.14.1.nupkg.sha512",

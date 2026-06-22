@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "B5TGVyOGsmk=",
+  "dgSpecHash": "jLP7aaYb2GU=",
   "success": true,
   "projectFilePath": "C:\\Users\\Javokhir\\Downloads\\Study\\Diplom ishi\\src\\backend\\src\\BookRatingSystem.Application\\BookRatingSystem.Application.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\Javokhir\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\10.0.9\\microsoft.extensions.dependencyinjection.abstractions.10.0.9.nupkg.sha512"
+  ],
   "logs": []
 }

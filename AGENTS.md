@@ -6,7 +6,7 @@ Project topic:
 
 > “Axborot resurs markazidagi kitoblarning onlayn reytingini shakllantiruvchi axborot tizimini ishlab chiqish”
 
-The backend must provide a clean REST API for managing books, searching books, viewing book details, submitting ratings, and calculating book rating statistics.
+The backend provides a REST API for listing books, searching books, viewing book details, submitting ratings, and calculating book rating statistics.
 
 ## Main stack
 
@@ -14,55 +14,28 @@ Use this stack unless the user explicitly changes it:
 
 * ASP.NET Core Web API
 * C#
+* .NET 10
 * PostgreSQL
 * Entity Framework Core
 * Npgsql EF Core provider
+* PostgreSQL-backed search for now
 * Meilisearch integration later through backend abstraction
 * REST API
 * Swagger/OpenAPI for development
+* xUnit for focused backend tests
 
 Prefer a simple, clear, diploma-friendly architecture over enterprise overengineering.
 
-## Current implementation phase
+## Current implementation status
 
-Focus on backend skeleton and core API.
+The initial backend skeleton and core API have been implemented.
 
-Do not implement Meilisearch yet unless explicitly asked.
+Current solution:
 
-Do not implement authentication yet unless explicitly asked.
-
-Do not implement frontend code from this folder.
-
-The backend should be ready for the existing React Vite frontend to consume later.
-
-## Backend goals
-
-Implement the backend for a book rating information system.
-
-Core features:
-
-* store books;
-* list books;
-* get book details;
-* search books through database initially;
-* submit book rating;
-* calculate average rating;
-* count ratings;
-* expose clean API endpoints for frontend integration.
-
-The system is primarily about online book rating for an information resource center.
-
-Do not add borrowing, reservations, library inventory, user roles, payment, notifications, or complex admin workflows unless explicitly requested.
-
-## Preferred solution structure
-
-Create a clear ASP.NET Core solution.
-
-Preferred structure:
-
-```text id="fsswq8"
+```text
 backend/
   BookRatingSystem.sln
+  .gitignore
   src/
     BookRatingSystem.Api/
     BookRatingSystem.Application/
@@ -72,11 +45,46 @@ backend/
     BookRatingSystem.Tests/
 ```
 
-If a simpler structure is chosen for speed, it must still keep API, domain, data access, and business logic reasonably separated.
+Implemented:
 
-Do not create unnecessary microservices.
+* `Book` and `BookRating` domain entities;
+* EF Core `BookRatingDbContext`;
+* explicit EF Core entity configurations;
+* initial PostgreSQL migration;
+* development seed data;
+* REST endpoints for books, search, and ratings;
+* PostgreSQL search behind `IBookSearchService`;
+* CORS for `http://localhost:5173`;
+* Swagger UI in development;
+* basic application service tests.
 
-This is a diploma project, not a production distributed system.
+Not implemented yet:
+
+* Meilisearch;
+* authentication;
+* admin panel;
+* borrowing, reservation, inventory, payment, notification, or user-role modules.
+
+Do not implement items from the “not implemented yet” list unless the user explicitly asks.
+
+## Backend goals
+
+Maintain and extend the backend for a book rating information system.
+
+Core features:
+
+* store books;
+* list books;
+* get book details;
+* search books through PostgreSQL initially;
+* submit book rating;
+* calculate average rating;
+* count ratings;
+* expose clean API endpoints for frontend integration.
+
+The system is primarily about online book rating for an information resource center.
+
+Do not add unrelated library workflows unless explicitly requested.
 
 ## Project responsibilities
 
@@ -84,13 +92,22 @@ This is a diploma project, not a production distributed system.
 
 Contains:
 
-* controllers or endpoints;
-* request/response DTOs;
+* controllers;
+* request contracts;
 * dependency injection setup;
 * middleware;
-* Swagger/OpenAPI;
+* Swagger/OpenAPI setup;
 * CORS configuration;
 * API validation behavior.
+
+Current important files:
+
+```text
+src/BookRatingSystem.Api/Program.cs
+src/BookRatingSystem.Api/Controllers/BooksController.cs
+src/BookRatingSystem.Api/Contracts/CreateBookRatingRequest.cs
+src/BookRatingSystem.Api/appsettings.json
+```
 
 ### BookRatingSystem.Application
 
@@ -99,8 +116,18 @@ Contains:
 * use cases;
 * service interfaces;
 * application services;
-* validation logic;
-* DTO mapping logic if needed.
+* DTOs;
+* mapping logic;
+* abstractions used by infrastructure.
+
+Current important files:
+
+```text
+src/BookRatingSystem.Application/Books/BookService.cs
+src/BookRatingSystem.Application/Books/IBookService.cs
+src/BookRatingSystem.Application/Books/Dtos/
+src/BookRatingSystem.Application/Abstractions/
+```
 
 ### BookRatingSystem.Domain
 
@@ -108,8 +135,15 @@ Contains:
 
 * core entities;
 * domain rules;
-* enums;
-* value objects if useful.
+* domain exceptions.
+
+Current important files:
+
+```text
+src/BookRatingSystem.Domain/Entities/Book.cs
+src/BookRatingSystem.Domain/Entities/BookRating.cs
+src/BookRatingSystem.Domain/Exceptions/InvalidBookRatingException.cs
+```
 
 Keep domain simple and understandable.
 
@@ -117,24 +151,34 @@ Keep domain simple and understandable.
 
 Contains:
 
-* EF Core DbContext;
+* EF Core `DbContext`;
 * entity configurations;
-* repositories if used;
-* PostgreSQL implementation;
-* search abstraction implementation later;
+* EF Core repository implementation;
+* PostgreSQL search implementation;
+* time/system infrastructure;
 * database migrations.
+
+Current important files:
+
+```text
+src/BookRatingSystem.Infrastructure/Persistence/BookRatingDbContext.cs
+src/BookRatingSystem.Infrastructure/Persistence/Configurations/
+src/BookRatingSystem.Infrastructure/Persistence/Migrations/
+src/BookRatingSystem.Infrastructure/Repositories/EfBookRepository.cs
+src/BookRatingSystem.Infrastructure/Search/PostgresBookSearchService.cs
+```
 
 ## Domain model
 
-Use this initial domain model unless the user changes it.
+Use the current domain model unless the user changes it.
 
 ### Book
 
 Represents a book in the information resource center.
 
-Suggested fields:
+Current fields:
 
-```text id="duwvuz"
+```text
 Id
 Title
 Author
@@ -144,27 +188,31 @@ PublishedYear
 CoverImageUrl
 CreatedAt
 UpdatedAt
+Ratings
 ```
 
 ### BookRating
 
 Represents a rating submitted for a book.
 
-Suggested fields:
+Current fields:
 
-```text id="j8ueky"
+```text
 Id
 BookId
 Value
 Comment
 CreatedAt
+Book
 ```
 
 Rating value must be from 1 to 5.
 
+Comment length is limited to 500 characters.
+
 A book can have many ratings.
 
-Average rating and ratings count may be calculated from ratings instead of stored directly unless there is a clear reason to store them.
+`averageRating` and `ratingsCount` are calculated from ratings instead of stored directly.
 
 ## Database rules
 
@@ -174,51 +222,62 @@ Use EF Core migrations.
 
 Use explicit entity configurations.
 
-Prefer:
+Current tables:
 
-* `Guid` or `long` IDs consistently;
-* `DateTimeOffset` or UTC `DateTime` consistently;
-* required fields for important data;
-* reasonable max lengths for text fields;
-* indexes for searchable fields.
+```text
+books
+book_ratings
+```
 
-Add indexes for:
+Current indexes:
 
-* book title;
-* author;
-* category;
-* rating book id.
+```text
+IX_books_Title
+IX_books_Author
+IX_books_Category
+IX_book_ratings_BookId
+```
+
+Current migration:
+
+```text
+20260622185401_InitialCreate
+```
+
+The migration includes simple development seed data for books and ratings.
 
 Do not hardcode production credentials.
 
-Use configuration from `appsettings.json`, user secrets, or environment variables.
+Use configuration from `appsettings.json`, user secrets, or environment variables. The checked-in PostgreSQL connection string is a local development placeholder only.
 
 ## API endpoints
 
-Implement these initial endpoints:
+Implemented endpoints:
 
-```text id="z9xzh2"
+```text
 GET    /api/books
 GET    /api/books/{id}
 GET    /api/books/search?q=...
 POST   /api/books/{id}/ratings
 ```
 
-Optional, only if needed for demo/admin:
+Do not add extra endpoints unless they are useful for the diploma demo or explicitly requested.
 
-```text id="g434g1"
+Optional endpoints, only if needed later for demo/admin work:
+
+```text
 POST   /api/books
 PUT    /api/books/{id}
 DELETE /api/books/{id}
 ```
 
-Do not add endpoints that are not useful for the diploma demo.
+Do not implement authentication-protected admin behavior until authentication is explicitly requested.
 
 ## API response expectations
 
-Book list items should include:
+Book list items include:
 
-```text id="u1m8bt"
+```text
 id
 title
 author
@@ -228,9 +287,9 @@ averageRating
 ratingsCount
 ```
 
-Book details should include:
+Book details include:
 
-```text id="uk8gnu"
+```text
 id
 title
 author
@@ -245,7 +304,7 @@ recentRatings
 
 Rating submission request:
 
-```json id="s2jlkd"
+```json
 {
   "value": 5,
   "comment": "Juda foydali kitob"
@@ -256,44 +315,36 @@ Validate rating value from 1 to 5.
 
 Reject invalid requests with clear validation errors.
 
-## Search implementation plan
+## Search implementation
 
-Initial implementation:
+Current implementation:
 
-* use PostgreSQL search with simple `ILIKE` or EF Core-compatible filtering;
-* search by title, author, and category;
-* keep search logic behind an abstraction.
+* `IBookSearchService` is defined in Application;
+* `PostgresBookSearchService` is defined in Infrastructure;
+* search uses PostgreSQL-compatible EF Core query with `EF.Functions.ILike`;
+* search checks title, author, and category;
+* empty query is rejected at the API boundary.
 
-Later implementation:
+Later Meilisearch integration should:
 
-* integrate Meilisearch through backend;
+* keep the `IBookSearchService` abstraction;
+* add a new backend-side implementation;
 * index books;
 * update index when books are created or updated;
 * keep Meilisearch credentials only in backend configuration;
 * never expose admin/master keys to frontend.
 
-Create a search abstraction early, for example:
-
-```csharp id="u8d9bb"
-public interface IBookSearchService
-{
-    Task<IReadOnlyList<BookSearchResultDto>> SearchAsync(string query, CancellationToken cancellationToken);
-}
-```
-
-For the first backend version, implement this using PostgreSQL.
-
 Do not install or configure Meilisearch until explicitly requested.
 
 ## CORS
 
-Configure CORS for local frontend development.
+Local frontend origin:
 
-Expected frontend origin:
-
-```text id="ow8n21"
+```text
 http://localhost:5173
 ```
+
+CORS is configured in `Program.cs` through a named policy.
 
 Keep CORS configuration explicit.
 
@@ -301,25 +352,23 @@ Do not allow all origins in a final/demo configuration unless the user explicitl
 
 ## Swagger/OpenAPI
 
-Enable Swagger in development.
+Swagger/OpenAPI is enabled in development.
 
-The API should be easy to test from Swagger UI.
+The API should remain easy to test from Swagger UI.
 
 Use meaningful endpoint names, request DTOs, and response DTOs.
 
 ## Data seeding
 
-Add simple development seed data if useful.
+Development seed data is configured through EF Core entity configuration and included in the initial migration.
 
-Seed data should include several books with different authors, categories, and ratings.
-
-Keep seed data realistic but not excessive.
+Seed data should stay realistic but not excessive.
 
 Do not seed copyrighted book descriptions or long copied texts.
 
-## Error handling
+If seed data changes, create or update migrations intentionally and verify the generated migration.
 
-Add basic error handling.
+## Error handling
 
 The API should not return raw exception details in normal responses.
 
@@ -327,19 +376,21 @@ Use clear errors for:
 
 * book not found;
 * invalid rating value;
-* empty search query if handled as invalid;
+* empty search query;
 * database errors.
+
+Use ASP.NET Core `ProblemDetails`-style responses where practical.
 
 ## Validation
 
 Validate incoming requests.
 
-At minimum:
+Current minimum rules:
 
 * book title is required;
 * author is required;
 * rating value must be between 1 and 5;
-* comment length should be limited.
+* rating comment length is limited.
 
 Prefer simple validation first.
 
@@ -364,7 +415,7 @@ Avoid:
 
 * unnecessary abstractions;
 * generic repository pattern unless it adds real value;
-* complex CQRS/MediatR setup for the first version;
+* complex CQRS/MediatR setup for this project stage;
 * hidden magic;
 * huge controllers;
 * business logic directly inside endpoints;
@@ -385,35 +436,44 @@ Do not overcomplicate the project just to look advanced.
 
 ## Frontend compatibility
 
-The backend must be easy to connect to the existing React Vite frontend.
+The backend must remain easy to connect to the existing React Vite frontend.
 
-Before finalizing endpoints, keep response shapes close to the frontend types.
+Keep response shapes close to frontend types.
 
 Do not break frontend expectations without reporting it.
 
-If frontend integration requires changes, list them clearly.
+Do not modify frontend code from backend tasks unless the user explicitly asks for frontend integration.
 
 ## Testing
 
-Add basic tests only if the user asks or if the setup remains simple.
+Current tests:
 
-At minimum, keep the project buildable.
+```text
+tests/BookRatingSystem.Tests/BookServiceTests.cs
+```
 
-Expected commands should work:
+Expected commands from `src/backend`:
 
-```bash id="dqystx"
+```bash
 dotnet restore
 dotnet build
+dotnet test
 dotnet run --project src/BookRatingSystem.Api
 ```
 
-If migrations are created, document the migration command.
+Migration command:
 
-Example:
-
-```bash id="i0i2h7"
-dotnet ef database update --project src/BookRatingSystem.Infrastructure --startup-project src/BookRatingSystem.Api
+```bash
+dotnet ef migrations add <MigrationName> --project src/BookRatingSystem.Infrastructure/BookRatingSystem.Infrastructure.csproj --startup-project src/BookRatingSystem.Api/BookRatingSystem.Api.csproj --output-dir Persistence/Migrations
 ```
+
+Database update command:
+
+```bash
+dotnet ef database update --project src/BookRatingSystem.Infrastructure/BookRatingSystem.Infrastructure.csproj --startup-project src/BookRatingSystem.Api/BookRatingSystem.Api.csproj
+```
+
+Do not claim tests exist or pass unless `dotnet test` has been run successfully.
 
 ## Docker
 
@@ -429,11 +489,9 @@ If Docker is requested later, keep it simple:
 
 Do not commit real secrets.
 
-Use placeholders in example configuration.
+Allowed local placeholder example:
 
-Allowed placeholder example:
-
-```json id="pxc8pp"
+```json
 {
   "ConnectionStrings": {
     "DefaultConnection": "Host=localhost;Port=5432;Database=book_rating_db;Username=postgres;Password=postgres"
@@ -441,7 +499,19 @@ Allowed placeholder example:
 }
 ```
 
-Make it clear that real credentials should be changed outside source control.
+Real credentials should be changed outside source control through user secrets, environment variables, or deployment configuration.
+
+## Generated files
+
+Do not manually edit generated dependency/build output:
+
+```text
+bin/
+obj/
+TestResults/
+```
+
+These paths are ignored by the backend-local `.gitignore`.
 
 ## Diploma compatibility
 
@@ -457,19 +527,21 @@ When adding features, keep them explainable using this structure:
 
 Prefer simple, demonstrable features over unfinished advanced features.
 
+Do not invent implemented features in thesis text. If a feature is planned but not implemented, mark it as planned or `TODO:`.
+
 ## Work behavior
 
 Before changing files, inspect the existing project.
 
 Make small, focused, reviewable changes.
 
-Do not delete existing files unless clearly necessary.
+Do not delete existing files unless clearly unnecessary and explain why.
 
-Do not rewrite working frontend code from this backend task.
+Do not rewrite working frontend code from backend tasks.
 
 After completing work, respond briefly:
 
-```text id="rdcwwr"
+```text
 Bajarildi:
 - ...
 
@@ -492,6 +564,6 @@ Do not claim tests exist before they are written.
 
 Do not claim the system is secure, optimized, deployed, or production-ready unless the code proves it.
 
-Do not implement authentication, admin panel, borrowing, reservation, or inventory modules unless explicitly requested.
+Do not implement authentication, admin panel, borrowing, reservation, inventory, payment, notification, or user-role modules unless explicitly requested.
 
 Keep the project aligned with the diploma topic: online book rating.

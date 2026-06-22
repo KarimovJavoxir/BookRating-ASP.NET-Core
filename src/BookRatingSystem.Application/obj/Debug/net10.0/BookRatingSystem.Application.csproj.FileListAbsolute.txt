@@ -13,3 +13,4 @@ C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.A
 C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\obj\Debug\net10.0\refint\BookRatingSystem.Application.dll
 C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\obj\Debug\net10.0\BookRatingSystem.Application.pdb
 C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\obj\Debug\net10.0\ref\BookRatingSystem.Application.dll
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\obj\Debug\net10.0\BookRatingSystem.Application.sourcelink.json

@@ -1,6 +1,26 @@
 @BookRatingSystem.Api_HostAddress = http://localhost:5099
 
-GET {{BookRatingSystem.Api_HostAddress}}/weatherforecast/
+GET {{BookRatingSystem.Api_HostAddress}}/api/books
 Accept: application/json
+
+###
+
+GET {{BookRatingSystem.Api_HostAddress}}/api/books/11111111-1111-1111-1111-111111111111
+Accept: application/json
+
+###
+
+GET {{BookRatingSystem.Api_HostAddress}}/api/books/search?q=database
+Accept: application/json
+
+###
+
+POST {{BookRatingSystem.Api_HostAddress}}/api/books/11111111-1111-1111-1111-111111111111/ratings
+Content-Type: application/json
+
+{
+  "value": 5,
+  "comment": "Juda foydali kitob"
+}
 
 ###

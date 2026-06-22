@@ -38,6 +38,83 @@ public sealed class BooksController(
         }
     }
 
+    [HttpPost]
+    [ProducesResponseType(typeof(BookDetailsDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<BookDetailsDto>> CreateBook(
+        CreateBookRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var book = await bookService.CreateBookAsync(
+                new CreateBookCommand(
+                    request.Title!,
+                    request.Author!,
+                    request.Category,
+                    request.Description,
+                    request.PublishedYear,
+                    request.CoverImageUrl),
+                cancellationToken);
+
+            return CreatedAtAction(nameof(GetBook), new { id = book.Id }, book);
+        }
+        catch (ArgumentException exception)
+        {
+            return InvalidBookRequest(exception);
+        }
+    }
+
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(typeof(BookDetailsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BookDetailsDto>> UpdateBook(
+        Guid id,
+        UpdateBookRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var book = await bookService.UpdateBookAsync(
+                id,
+                new UpdateBookCommand(
+                    request.Title!,
+                    request.Author!,
+                    request.Category,
+                    request.Description,
+                    request.PublishedYear,
+                    request.CoverImageUrl),
+                cancellationToken);
+
+            return Ok(book);
+        }
+        catch (BookNotFoundException exception)
+        {
+            return BookNotFound(exception.BookId);
+        }
+        catch (ArgumentException exception)
+        {
+            return InvalidBookRequest(exception);
+        }
+    }
+
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteBook(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await bookService.DeleteBookAsync(id, cancellationToken);
+            return NoContent();
+        }
+        catch (BookNotFoundException exception)
+        {
+            return BookNotFound(exception.BookId);
+        }
+    }
+
     [HttpGet("search")]
     [ProducesResponseType(typeof(IReadOnlyList<BookSearchResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -53,8 +130,18 @@ public sealed class BooksController(
                 statusCode: StatusCodes.Status400BadRequest);
         }
 
-        var books = await bookSearchService.SearchAsync(q, cancellationToken);
-        return Ok(books);
+        try
+        {
+            var books = await bookSearchService.SearchAsync(q, cancellationToken);
+            return Ok(books);
+        }
+        catch (BookSearchUnavailableException exception)
+        {
+            return Problem(
+                title: "Qidiruv servisi vaqtincha ishlamayapti.",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
     }
 
     [HttpPost("{id:guid}/ratings")]
@@ -94,5 +181,13 @@ public sealed class BooksController(
             title: "Kitob topilmadi.",
             detail: $"Id qiymati '{bookId}' boʻlgan kitob topilmadi.",
             statusCode: StatusCodes.Status404NotFound);
+    }
+
+    private ActionResult InvalidBookRequest(ArgumentException exception)
+    {
+        return Problem(
+            title: "Kitob maʼlumotlari notoʻgʻri.",
+            detail: exception.Message,
+            statusCode: StatusCodes.Status400BadRequest);
     }
 }

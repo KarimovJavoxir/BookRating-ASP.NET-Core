@@ -8,6 +8,15 @@ public interface IBookService
 
     Task<BookDetailsDto> GetBookByIdAsync(Guid id, CancellationToken cancellationToken);
 
+    Task<BookDetailsDto> CreateBookAsync(CreateBookCommand command, CancellationToken cancellationToken);
+
+    Task<BookDetailsDto> UpdateBookAsync(
+        Guid bookId,
+        UpdateBookCommand command,
+        CancellationToken cancellationToken);
+
+    Task DeleteBookAsync(Guid bookId, CancellationToken cancellationToken);
+
     Task<BookDetailsDto> SubmitRatingAsync(
         Guid bookId,
         SubmitBookRatingCommand command,

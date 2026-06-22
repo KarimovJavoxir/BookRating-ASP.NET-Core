@@ -7,4 +7,8 @@ public interface IBookRepository
     Task<IReadOnlyList<Book>> ListAsync(CancellationToken cancellationToken);
 
     Task<Book?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+
+    void Add(Book book);
+
+    void Delete(Book book);
 }

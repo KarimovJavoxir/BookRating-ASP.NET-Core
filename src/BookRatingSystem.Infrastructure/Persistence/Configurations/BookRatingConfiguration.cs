@@ -12,6 +12,9 @@ internal sealed class BookRatingConfiguration : IEntityTypeConfiguration<BookRat
 
         builder.HasKey(rating => rating.Id);
 
+        builder.Property(rating => rating.Id)
+            .ValueGeneratedNever();
+
         builder.Property(rating => rating.Value)
             .IsRequired();
 

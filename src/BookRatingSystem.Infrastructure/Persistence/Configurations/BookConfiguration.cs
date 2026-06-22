@@ -12,22 +12,25 @@ internal sealed class BookConfiguration : IEntityTypeConfiguration<Book>
 
         builder.HasKey(book => book.Id);
 
+        builder.Property(book => book.Id)
+            .ValueGeneratedNever();
+
         builder.Property(book => book.Title)
-            .HasMaxLength(200)
+            .HasMaxLength(Book.MaxTitleLength)
             .IsRequired();
 
         builder.Property(book => book.Author)
-            .HasMaxLength(150)
+            .HasMaxLength(Book.MaxAuthorLength)
             .IsRequired();
 
         builder.Property(book => book.Category)
-            .HasMaxLength(100);
+            .HasMaxLength(Book.MaxCategoryLength);
 
         builder.Property(book => book.Description)
-            .HasMaxLength(2000);
+            .HasMaxLength(Book.MaxDescriptionLength);
 
         builder.Property(book => book.CoverImageUrl)
-            .HasMaxLength(500);
+            .HasMaxLength(Book.MaxCoverImageUrlLength);
 
         builder.Property(book => book.CreatedAt)
             .IsRequired();

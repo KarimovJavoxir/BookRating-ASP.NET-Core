@@ -3,3 +3,4 @@ obj/
 TestResults/
 .vs/
 wwwroot/
+.env

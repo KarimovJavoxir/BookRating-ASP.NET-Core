@@ -22,4 +22,14 @@ internal sealed class EfBookRepository(BookRatingDbContext dbContext) : IBookRep
             .Include(book => book.Ratings)
             .FirstOrDefaultAsync(book => book.Id == id, cancellationToken);
     }
+
+    public void Add(Book book)
+    {
+        dbContext.Books.Add(book);
+    }
+
+    public void Delete(Book book)
+    {
+        dbContext.Books.Remove(book);
+    }
 }

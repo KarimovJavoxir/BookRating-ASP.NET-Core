@@ -1,5 +1,6 @@
 using BookRatingSystem.Application;
 using BookRatingSystem.Infrastructure;
+using BookRatingSystem.Infrastructure.Search;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,11 +31,10 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.UseSwagger();
     app.UseSwaggerUI();
+    await app.Services.InitializeBookSearchIndexAsync(app.Logger, app.Lifetime.ApplicationStopping);
 }
-else
-{
-    app.UseExceptionHandler();
-}
+
+app.UseExceptionHandler();
 
 app.UseHttpsRedirection();
 

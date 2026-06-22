@@ -28,7 +28,8 @@ public class BookServiceTests
         var service = new BookService(
             new FakeBookRepository(book),
             new FakeUnitOfWork(),
-            new FixedClock(createdAt));
+            new FixedClock(createdAt),
+            new FakeBookIndexingService());
 
         var result = await service.GetBooksAsync(CancellationToken.None);
 
@@ -52,7 +53,12 @@ public class BookServiceTests
             null,
             now.AddDays(-1));
         var unitOfWork = new FakeUnitOfWork();
-        var service = new BookService(new FakeBookRepository(book), unitOfWork, new FixedClock(now));
+        var indexingService = new FakeBookIndexingService();
+        var service = new BookService(
+            new FakeBookRepository(book),
+            unitOfWork,
+            new FixedClock(now),
+            indexingService);
 
         var result = await service.SubmitRatingAsync(
             book.Id,
@@ -62,6 +68,7 @@ public class BookServiceTests
         Assert.Equal(5.0m, result.AverageRating);
         Assert.Equal(1, result.RatingsCount);
         Assert.Equal(1, unitOfWork.SaveChangesCalls);
+        Assert.Equal([book.Id], indexingService.IndexedBookIds);
 
         var rating = Assert.Single(result.RecentRatings);
         Assert.Equal(5, rating.Value);
@@ -83,7 +90,12 @@ public class BookServiceTests
             null,
             now);
         var unitOfWork = new FakeUnitOfWork();
-        var service = new BookService(new FakeBookRepository(book), unitOfWork, new FixedClock(now));
+        var indexingService = new FakeBookIndexingService();
+        var service = new BookService(
+            new FakeBookRepository(book),
+            unitOfWork,
+            new FixedClock(now),
+            indexingService);
 
         await Assert.ThrowsAsync<InvalidBookRatingException>(() =>
             service.SubmitRatingAsync(
@@ -92,6 +104,194 @@ public class BookServiceTests
                 CancellationToken.None));
 
         Assert.Equal(0, unitOfWork.SaveChangesCalls);
+        Assert.Empty(indexingService.IndexedBookIds);
+    }
+
+    [Fact]
+    public async Task CreateBookAsync_saves_book_and_indexes_it()
+    {
+        var now = new DateTimeOffset(2026, 6, 23, 9, 0, 0, TimeSpan.Zero);
+        var repository = new FakeBookRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var indexingService = new FakeBookIndexingService();
+        var service = new BookService(
+            repository,
+            unitOfWork,
+            new FixedClock(now),
+            indexingService);
+
+        var result = await service.CreateBookAsync(
+            new CreateBookCommand(
+                "  Clean Code  ",
+                "  Robert C. Martin ",
+                "Dasturlash",
+                "Kod sifatini oshirish haqida kitob.",
+                2008,
+                "https://example.com/clean-code.jpg"),
+            CancellationToken.None);
+
+        Assert.NotEqual(Guid.Empty, result.Id);
+        Assert.Equal("Clean Code", result.Title);
+        Assert.Equal("Robert C. Martin", result.Author);
+        Assert.Equal("Dasturlash", result.Category);
+        Assert.Equal("Kod sifatini oshirish haqida kitob.", result.Description);
+        Assert.Equal(2008, result.PublishedYear);
+        Assert.Equal("https://example.com/clean-code.jpg", result.CoverImageUrl);
+        Assert.Equal(0m, result.AverageRating);
+        Assert.Equal(0, result.RatingsCount);
+        Assert.Equal(1, unitOfWork.SaveChangesCalls);
+        Assert.Equal([result.Id], indexingService.IndexedBookIds);
+
+        var persistedBook = await repository.GetByIdAsync(result.Id, CancellationToken.None);
+        Assert.NotNull(persistedBook);
+        Assert.Equal(now, persistedBook.CreatedAt);
+        Assert.Equal(now, persistedBook.UpdatedAt);
+    }
+
+    [Fact]
+    public async Task UpdateBookAsync_updates_book_and_reindexes_with_existing_rating_statistics()
+    {
+        var createdAt = new DateTimeOffset(2026, 6, 20, 9, 0, 0, TimeSpan.Zero);
+        var now = new DateTimeOffset(2026, 6, 23, 10, 0, 0, TimeSpan.Zero);
+        var book = Book.Create(
+            Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd"),
+            "Eski nom",
+            "Eski muallif",
+            "Eski kategoriya",
+            "Eski izoh",
+            2020,
+            null,
+            createdAt);
+        book.AddRating(5, null, createdAt.AddMinutes(1));
+        book.AddRating(3, null, createdAt.AddMinutes(2));
+
+        var unitOfWork = new FakeUnitOfWork();
+        var indexingService = new FakeBookIndexingService();
+        var service = new BookService(
+            new FakeBookRepository(book),
+            unitOfWork,
+            new FixedClock(now),
+            indexingService);
+
+        var result = await service.UpdateBookAsync(
+            book.Id,
+            new UpdateBookCommand(
+                "Yangi nom",
+                "Yangi muallif",
+                "Yangi kategoriya",
+                "Yangi izoh",
+                2025,
+                "https://example.com/new.jpg"),
+            CancellationToken.None);
+
+        Assert.Equal(book.Id, result.Id);
+        Assert.Equal("Yangi nom", result.Title);
+        Assert.Equal("Yangi muallif", result.Author);
+        Assert.Equal("Yangi kategoriya", result.Category);
+        Assert.Equal("Yangi izoh", result.Description);
+        Assert.Equal(2025, result.PublishedYear);
+        Assert.Equal("https://example.com/new.jpg", result.CoverImageUrl);
+        Assert.Equal(4.0m, result.AverageRating);
+        Assert.Equal(2, result.RatingsCount);
+        Assert.Equal(now, book.UpdatedAt);
+        Assert.Equal(1, unitOfWork.SaveChangesCalls);
+        Assert.Equal([book.Id], indexingService.IndexedBookIds);
+    }
+
+    [Fact]
+    public async Task DeleteBookAsync_removes_book_and_deletes_index_document()
+    {
+        var now = new DateTimeOffset(2026, 6, 23, 11, 0, 0, TimeSpan.Zero);
+        var book = Book.Create(
+            Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"),
+            "Oʻchiriladigan kitob",
+            "A. Muallif",
+            null,
+            null,
+            null,
+            null,
+            now.AddDays(-1));
+        var repository = new FakeBookRepository(book);
+        var unitOfWork = new FakeUnitOfWork();
+        var indexingService = new FakeBookIndexingService();
+        var service = new BookService(
+            repository,
+            unitOfWork,
+            new FixedClock(now),
+            indexingService);
+
+        await service.DeleteBookAsync(book.Id, CancellationToken.None);
+
+        Assert.Null(await repository.GetByIdAsync(book.Id, CancellationToken.None));
+        Assert.Equal(1, unitOfWork.SaveChangesCalls);
+        Assert.Equal([book.Id], indexingService.DeletedBookIds);
+    }
+
+    [Fact]
+    public async Task UpdateBookAsync_throws_not_found_without_saving_or_indexing()
+    {
+        var now = new DateTimeOffset(2026, 6, 23, 12, 0, 0, TimeSpan.Zero);
+        var missingBookId = Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff");
+        var unitOfWork = new FakeUnitOfWork();
+        var indexingService = new FakeBookIndexingService();
+        var service = new BookService(
+            new FakeBookRepository(),
+            unitOfWork,
+            new FixedClock(now),
+            indexingService);
+
+        var exception = await Assert.ThrowsAsync<BookNotFoundException>(() =>
+            service.UpdateBookAsync(
+                missingBookId,
+                new UpdateBookCommand("Nom", "Muallif", null, null, null, null),
+                CancellationToken.None));
+
+        Assert.Equal(missingBookId, exception.BookId);
+        Assert.Equal(0, unitOfWork.SaveChangesCalls);
+        Assert.Empty(indexingService.IndexedBookIds);
+    }
+
+    [Fact]
+    public async Task DeleteBookAsync_throws_not_found_without_saving_or_deleting_index_document()
+    {
+        var now = new DateTimeOffset(2026, 6, 23, 13, 0, 0, TimeSpan.Zero);
+        var missingBookId = Guid.Parse("abababab-abab-abab-abab-abababababab");
+        var unitOfWork = new FakeUnitOfWork();
+        var indexingService = new FakeBookIndexingService();
+        var service = new BookService(
+            new FakeBookRepository(),
+            unitOfWork,
+            new FixedClock(now),
+            indexingService);
+
+        var exception = await Assert.ThrowsAsync<BookNotFoundException>(() =>
+            service.DeleteBookAsync(missingBookId, CancellationToken.None));
+
+        Assert.Equal(missingBookId, exception.BookId);
+        Assert.Equal(0, unitOfWork.SaveChangesCalls);
+        Assert.Empty(indexingService.DeletedBookIds);
+    }
+
+    [Fact]
+    public async Task CreateBookAsync_keeps_saved_book_when_indexing_fails()
+    {
+        var now = new DateTimeOffset(2026, 6, 23, 14, 0, 0, TimeSpan.Zero);
+        var repository = new FakeBookRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var indexingService = new FakeBookIndexingService { ThrowOnIndex = true };
+        var service = new BookService(
+            repository,
+            unitOfWork,
+            new FixedClock(now),
+            indexingService);
+
+        var result = await service.CreateBookAsync(
+            new CreateBookCommand("Index xato testi", "A. Muallif", null, null, null, null),
+            CancellationToken.None);
+
+        Assert.Equal(1, unitOfWork.SaveChangesCalls);
+        Assert.NotNull(await repository.GetByIdAsync(result.Id, CancellationToken.None));
+        Assert.Equal([result.Id], indexingService.IndexedBookIds);
     }
 
     private sealed class FakeBookRepository(params Book[] books) : IBookRepository
@@ -107,6 +307,16 @@ public class BookServiceTests
         {
             _books.TryGetValue(id, out var book);
             return Task.FromResult(book);
+        }
+
+        public void Add(Book book)
+        {
+            _books.Add(book.Id, book);
+        }
+
+        public void Delete(Book book)
+        {
+            _books.Remove(book.Id);
         }
     }
 
@@ -124,5 +334,41 @@ public class BookServiceTests
     private sealed class FixedClock(DateTimeOffset utcNow) : IClock
     {
         public DateTimeOffset UtcNow { get; } = utcNow;
+    }
+
+    private sealed class FakeBookIndexingService : IBookIndexingService
+    {
+        public List<Guid> IndexedBookIds { get; } = [];
+
+        public List<Guid> DeletedBookIds { get; } = [];
+
+        public bool ThrowOnIndex { get; init; }
+
+        public Task EnsureIndexAsync(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task IndexBookAsync(Guid bookId, CancellationToken cancellationToken)
+        {
+            IndexedBookIds.Add(bookId);
+            if (ThrowOnIndex)
+            {
+                throw new InvalidOperationException("Index sync failed.");
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task IndexAllBooksAsync(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteBookAsync(Guid bookId, CancellationToken cancellationToken)
+        {
+            DeletedBookIds.Add(bookId);
+            return Task.CompletedTask;
+        }
     }
 }

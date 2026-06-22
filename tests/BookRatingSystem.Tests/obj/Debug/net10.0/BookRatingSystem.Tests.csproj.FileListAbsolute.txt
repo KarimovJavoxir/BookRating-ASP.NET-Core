@@ -1,0 +1,7 @@
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\tests\BookRatingSystem.Tests\bin\Debug\net10.0\.msCoverageSourceRootsMapping_BookRatingSystem.Tests
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\tests\BookRatingSystem.Tests\bin\Debug\net10.0\CoverletSourceRootsMapping_BookRatingSystem.Tests
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\tests\BookRatingSystem.Tests\obj\Debug\net10.0\BookRatingSystem.Tests.csproj.AssemblyReference.cache
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\tests\BookRatingSystem.Tests\obj\Debug\net10.0\BookRatingSystem.Tests.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\tests\BookRatingSystem.Tests\obj\Debug\net10.0\BookRatingSystem.Tests.AssemblyInfoInputs.cache
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\tests\BookRatingSystem.Tests\obj\Debug\net10.0\BookRatingSystem.Tests.AssemblyInfo.cs
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\tests\BookRatingSystem.Tests\obj\Debug\net10.0\BookRatingSystem.Tests.csproj.CoreCompileInputs.cache

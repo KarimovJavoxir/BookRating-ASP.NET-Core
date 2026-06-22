@@ -1,0 +1,15 @@
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\bin\Debug\net10.0\BookRatingSystem.Application.deps.json
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\bin\Debug\net10.0\BookRatingSystem.Application.dll
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\bin\Debug\net10.0\BookRatingSystem.Application.pdb
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\bin\Debug\net10.0\BookRatingSystem.Domain.dll
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\bin\Debug\net10.0\BookRatingSystem.Domain.pdb
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\obj\Debug\net10.0\BookRatingSystem.Application.csproj.AssemblyReference.cache
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\obj\Debug\net10.0\BookRatingSystem.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\obj\Debug\net10.0\BookRatingSystem.Application.AssemblyInfoInputs.cache
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\obj\Debug\net10.0\BookRatingSystem.Application.AssemblyInfo.cs
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\obj\Debug\net10.0\BookRatingSystem.Application.csproj.CoreCompileInputs.cache
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\obj\Debug\net10.0\BookRati.49BEE253.Up2Date
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\obj\Debug\net10.0\BookRatingSystem.Application.dll
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\obj\Debug\net10.0\refint\BookRatingSystem.Application.dll
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\obj\Debug\net10.0\BookRatingSystem.Application.pdb
+C:\Users\Javokhir\Downloads\Study\Diplom ishi\src\backend\src\BookRatingSystem.Application\obj\Debug\net10.0\ref\BookRatingSystem.Application.dll

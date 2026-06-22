@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BookRatingSystem.Api/BookRatingSystem.Api.csproj" />
+    <Project Path="src/BookRatingSystem.Application/BookRatingSystem.Application.csproj" />
+    <Project Path="src/BookRatingSystem.Domain/BookRatingSystem.Domain.csproj" />
+    <Project Path="src/BookRatingSystem.Infrastructure/BookRatingSystem.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BookRatingSystem.Tests/BookRatingSystem.Tests.csproj" />
+  </Folder>
+</Solution>

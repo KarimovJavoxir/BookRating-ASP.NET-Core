@@ -77,6 +77,8 @@ app.UseExceptionHandler();
 
 app.UseHttpsRedirection();
 
+app.UseStaticFiles();
+
 app.UseCors(ViteFrontendCorsPolicy);
 
 app.UseAuthentication();

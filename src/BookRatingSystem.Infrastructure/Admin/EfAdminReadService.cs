@@ -70,19 +70,21 @@ internal sealed class EfAdminReadService(BookRatingDbContext dbContext) : IAdmin
         CancellationToken cancellationToken)
     {
         var normalizedTo = NormalizeToEndOfDay(to);
-        var totalBooksTask = dbContext.Books.CountAsync(cancellationToken);
-        var totalUsersTask = dbContext.Users.CountAsync(cancellationToken);
-        var totalRatingsTask = dbContext.BookRatings.CountAsync(cancellationToken);
+        var totalBooks = await dbContext.Books.CountAsync(cancellationToken);
+        var totalUsers = await dbContext.Users.CountAsync(cancellationToken);
+        var totalRatings = await dbContext.BookRatings.CountAsync(cancellationToken);
+        normalizedTo = normalizedTo?.UtcDateTime;
+        from = from?.UtcDateTime;
 
         var booksInRangeQuery = ApplyBookDateRange(dbContext.Books.AsNoTracking(), from, normalizedTo);
         var ratingsInRangeQuery = ApplyRatingDateRange(dbContext.BookRatings.AsNoTracking(), from, normalizedTo);
 
-        var booksAddedInRangeTask = booksInRangeQuery.CountAsync(cancellationToken);
-        var ratingsAddedInRangeTask = ratingsInRangeQuery.CountAsync(cancellationToken);
-        var averageRatingInRangeTask = ratingsInRangeQuery
+        var booksAddedInRange = await booksInRangeQuery.CountAsync(cancellationToken);
+        var ratingsAddedInRange = await ratingsInRangeQuery.CountAsync(cancellationToken);
+        var averageRatingInRange = await ratingsInRangeQuery
             .Select(rating => (decimal?)rating.Value)
             .AverageAsync(cancellationToken);
-        var recentRatingsTask = ratingsInRangeQuery
+        var recentRatings = await ratingsInRangeQuery
             .OrderByDescending(rating => rating.CreatedAt)
             .Take(5)
             .Select(rating => new AdminBookRatingDto(
@@ -99,23 +101,14 @@ internal sealed class EfAdminReadService(BookRatingDbContext dbContext) : IAdmin
                 rating.CreatedAt))
             .ToListAsync(cancellationToken);
 
-        await Task.WhenAll(
-            totalBooksTask,
-            totalUsersTask,
-            totalRatingsTask,
-            booksAddedInRangeTask,
-            ratingsAddedInRangeTask,
-            averageRatingInRangeTask,
-            recentRatingsTask);
-
         return new AdminDashboardDto(
-            totalBooksTask.Result,
-            totalUsersTask.Result,
-            totalRatingsTask.Result,
-            booksAddedInRangeTask.Result,
-            ratingsAddedInRangeTask.Result,
-            Math.Round(averageRatingInRangeTask.Result ?? 0m, 2, MidpointRounding.AwayFromZero),
-            recentRatingsTask.Result);
+            totalBooks,
+            totalUsers,
+            totalRatings,
+            booksAddedInRange,
+            ratingsAddedInRange,
+            Math.Round(averageRatingInRange ?? 0m, 2, MidpointRounding.AwayFromZero),
+            recentRatings);
     }
 
     private static IQueryable<Book> ApplyBookDateRange(

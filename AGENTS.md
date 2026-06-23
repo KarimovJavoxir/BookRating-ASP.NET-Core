@@ -48,11 +48,14 @@ backend/
 Implemented:
 
 * `Book` and `BookRating` domain entities;
+* `User` domain entity with `is_admin` database field;
 * EF Core `BookRatingDbContext`;
 * explicit EF Core entity configurations;
 * initial PostgreSQL migration;
-* development seed data;
-* REST endpoints for book list/details/search/create/update/delete and ratings;
+* development seed data for books, ratings, 20 normal users, and 1 admin;
+* REST endpoints for book list/details/search/create/update/delete, ratings, register, and login;
+* simple JWT authentication;
+* authorization policies for admin-only book management and authenticated rating submission;
 * Meilisearch search behind `IBookSearchService`;
 * book indexing behind `IBookIndexingService`;
 * PostgreSQL fallback search through `PostgresBookSearchService`;
@@ -62,7 +65,6 @@ Implemented:
 
 Not implemented yet:
 
-* authentication;
 * admin panel;
 * borrowing, reservation, inventory, payment, notification, or user-role modules.
 
@@ -80,6 +82,8 @@ Core features:
 * create, update, and delete books;
 * search books through Meilisearch, with PostgreSQL fallback when configured;
 * submit book rating;
+* register and login users with JWT authentication;
+* restrict book create/update/delete endpoints to admin users;
 * calculate average rating;
 * count ratings;
 * expose clean API endpoints for frontend integration.
@@ -229,6 +233,7 @@ Current tables:
 ```text
 books
 book_ratings
+users
 ```
 
 Current indexes:
@@ -238,15 +243,18 @@ IX_books_Title
 IX_books_Author
 IX_books_Category
 IX_book_ratings_BookId
+IX_users_Email
+IX_users_Username
 ```
 
-Current migration:
+Current migrations:
 
 ```text
 20260622185401_InitialCreate
+20260623084940_AddUsersAndJwtAuth
 ```
 
-The migration includes simple development seed data for books and ratings.
+The migrations include simple development seed data for books, ratings, 20 normal users, and 1 admin user. Seed admin login is `admin` / `Admin123!`; seed normal users use `user01` through `user20` with password `User123!`.
 
 Do not hardcode production credentials.
 
@@ -260,15 +268,17 @@ Implemented endpoints:
 GET    /api/books
 GET    /api/books/{id}
 GET    /api/books/search?q=...
-POST   /api/books
-PUT    /api/books/{id}
-DELETE /api/books/{id}
-POST   /api/books/{id}/ratings
+POST   /api/auth/register
+POST   /api/auth/login
+POST   /api/books                 AdminOnly policy required
+PUT    /api/books/{id}            AdminOnly policy required
+DELETE /api/books/{id}            AdminOnly policy required
+POST   /api/books/{id}/ratings    AuthenticatedUser policy required
 ```
 
 Do not add extra endpoints unless they are useful for the diploma demo or explicitly requested.
 
-Do not implement authentication-protected admin behavior until authentication is explicitly requested.
+Do not add extra authentication-protected admin behavior beyond book create/update/delete unless explicitly requested.
 
 ## API response expectations
 
@@ -563,6 +573,6 @@ Do not claim tests exist before they are written.
 
 Do not claim the system is secure, optimized, deployed, or production-ready unless the code proves it.
 
-Do not implement authentication, admin panel, borrowing, reservation, inventory, payment, notification, or user-role modules unless explicitly requested.
+Do not expand authentication, admin panel, borrowing, reservation, inventory, payment, notification, or user-role modules unless explicitly requested.
 
 Keep the project aligned with the diploma topic: online book rating.

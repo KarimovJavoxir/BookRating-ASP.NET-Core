@@ -2,6 +2,7 @@ using BookRatingSystem.Application.Abstractions;
 using BookRatingSystem.Infrastructure.Persistence;
 using BookRatingSystem.Infrastructure.Repositories;
 using BookRatingSystem.Infrastructure.Search;
+using BookRatingSystem.Infrastructure.Security;
 using BookRatingSystem.Infrastructure.Time;
 using Meilisearch;
 using Microsoft.EntityFrameworkCore;
@@ -55,7 +56,9 @@ public static class DependencyInjection
             return new MeilisearchClient(options.Url, options.ApiKey);
         });
         services.AddScoped<IBookRepository, EfBookRepository>();
+        services.AddScoped<IUserRepository, EfUserRepository>();
         services.AddScoped<IUnitOfWork>(provider => provider.GetRequiredService<BookRatingDbContext>());
+        services.AddScoped<IPasswordHashService, Pbkdf2PasswordHashService>();
         services.AddScoped<PostgresBookSearchService>();
         services.AddScoped<IBookSearchService, MeilisearchBookSearchService>();
         services.AddScoped<IBookIndexingService, MeilisearchBookIndexingService>();

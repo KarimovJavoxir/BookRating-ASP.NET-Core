@@ -3,6 +3,7 @@ using BookRatingSystem.Application.Abstractions;
 using BookRatingSystem.Application.Books;
 using BookRatingSystem.Application.Books.Dtos;
 using BookRatingSystem.Domain.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookRatingSystem.Api.Controllers;
@@ -39,6 +40,7 @@ public sealed class BooksController(
     }
 
     [HttpPost]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [ProducesResponseType(typeof(BookDetailsDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<BookDetailsDto>> CreateBook(
@@ -66,6 +68,7 @@ public sealed class BooksController(
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [ProducesResponseType(typeof(BookDetailsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -100,6 +103,7 @@ public sealed class BooksController(
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteBook(Guid id, CancellationToken cancellationToken)
@@ -145,6 +149,7 @@ public sealed class BooksController(
     }
 
     [HttpPost("{id:guid}/ratings")]
+    [Authorize(Policy = AuthorizationPolicies.AuthenticatedUser)]
     [ProducesResponseType(typeof(BookDetailsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

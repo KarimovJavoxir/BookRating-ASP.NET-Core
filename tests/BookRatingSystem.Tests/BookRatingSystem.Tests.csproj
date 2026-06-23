@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\BookRatingSystem.Api\BookRatingSystem.Api.csproj" />
     <ProjectReference Include="..\..\src\BookRatingSystem.Application\BookRatingSystem.Application.csproj" />
     <ProjectReference Include="..\..\src\BookRatingSystem.Domain\BookRatingSystem.Domain.csproj" />
   </ItemGroup>

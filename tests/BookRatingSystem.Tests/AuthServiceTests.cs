@@ -25,10 +25,27 @@ public sealed class AuthServiceTests
         Assert.Equal("user1", user.Username);
         Assert.Equal("user1@example.com", user.Email);
         Assert.Equal("hashed:Password123!", user.PasswordHash);
+        Assert.Null(user.ProfilePictureUrl);
         Assert.False(user.IsAdmin);
         Assert.Equal(1, unitOfWork.SaveChangesCalls);
         Assert.Equal(user.Id, result.User.Id);
+        Assert.Null(result.User.ProfilePictureUrl);
         Assert.Equal("token:user1:False", result.Token);
+    }
+
+    [Fact]
+    public void User_create_keeps_optional_profile_picture_url()
+    {
+        var user = User.Create(
+            Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc"),
+            "user2",
+            "user2@example.com",
+            "hashed:Password123!",
+            profilePictureUrl: " https://example.com/faces/user2.jpg ",
+            isAdmin: false,
+            createdAt: new DateTimeOffset(2026, 6, 23, 0, 0, 0, TimeSpan.Zero));
+
+        Assert.Equal("https://example.com/faces/user2.jpg", user.ProfilePictureUrl);
     }
 
     [Fact]
@@ -39,8 +56,9 @@ public sealed class AuthServiceTests
             "admin",
             "admin@bookrate.uz",
             "hashed:Admin123!",
+            profilePictureUrl: "https://example.com/faces/admin.jpg",
             isAdmin: true,
-            new DateTimeOffset(2026, 6, 23, 0, 0, 0, TimeSpan.Zero));
+            createdAt: new DateTimeOffset(2026, 6, 23, 0, 0, 0, TimeSpan.Zero));
         var authService = new AuthService(
             new FakeUserRepository(admin),
             new FakePasswordHashService(),
@@ -52,6 +70,7 @@ public sealed class AuthServiceTests
             CancellationToken.None);
 
         Assert.Equal(admin.Id, result.User.Id);
+        Assert.Equal("https://example.com/faces/admin.jpg", result.User.ProfilePictureUrl);
         Assert.True(result.User.IsAdmin);
         Assert.Equal("token:admin:True", result.Token);
     }
@@ -64,8 +83,9 @@ public sealed class AuthServiceTests
             "user1",
             "user1@example.com",
             "hashed:Password123!",
+            profilePictureUrl: null,
             isAdmin: false,
-            new DateTimeOffset(2026, 6, 23, 0, 0, 0, TimeSpan.Zero));
+            createdAt: new DateTimeOffset(2026, 6, 23, 0, 0, 0, TimeSpan.Zero));
         var authService = new AuthService(
             new FakeUserRepository(user),
             new FakePasswordHashService(),

@@ -28,6 +28,10 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(User.MaxPasswordHashLength)
             .IsRequired();
 
+        builder.Property(user => user.ProfilePictureUrl)
+            .HasColumnName("profile_picture_url")
+            .HasMaxLength(User.MaxProfilePictureUrlLength);
+
         builder.Property(user => user.IsAdmin)
             .HasColumnName("is_admin")
             .IsRequired();
@@ -49,6 +53,7 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
                 Username = $"user{index:00}",
                 Email = $"user{index:00}@bookrate.uz",
                 PasswordHash = Pbkdf2PasswordHashService.CreateSeedHash("User123!", $"bookrate-user-{index:00}"),
+                ProfilePictureUrl = (string?)null,
                 IsAdmin = false,
                 CreatedAt = createdAt
             })
@@ -58,6 +63,7 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
                 Username = "admin",
                 Email = "admin@bookrate.uz",
                 PasswordHash = Pbkdf2PasswordHashService.CreateSeedHash("Admin123!", "bookrate-admin-01"),
+                ProfilePictureUrl = (string?)null,
                 IsAdmin = true,
                 CreatedAt = createdAt
             });

@@ -5,6 +5,7 @@ using BookRatingSystem.Application.Books.Dtos;
 using BookRatingSystem.Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace BookRatingSystem.Api.Controllers;
 
@@ -160,9 +161,18 @@ public sealed class BooksController(
     {
         try
         {
+            var userId = GetCurrentUserId();
+            if (userId is null)
+            {
+                return Problem(
+                    title: "Foydalanuvchi aniqlanmadi.",
+                    detail: "JWT token ichida foydalanuvchi identifikatori topilmadi.",
+                    statusCode: StatusCodes.Status401Unauthorized);
+            }
+
             var book = await bookService.SubmitRatingAsync(
                 id,
-                new SubmitBookRatingCommand(request.Value, request.Comment),
+                new SubmitBookRatingCommand(userId.Value, request.Value, request.Comment),
                 cancellationToken);
 
             return Ok(book);
@@ -194,5 +204,11 @@ public sealed class BooksController(
             title: "Kitob maʼlumotlari notoʻgʻri.",
             detail: exception.Message,
             statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    private Guid? GetCurrentUserId()
+    {
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(userIdValue, out var userId) ? userId : null;
     }
 }

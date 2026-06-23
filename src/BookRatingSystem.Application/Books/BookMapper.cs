@@ -40,7 +40,13 @@ internal static class BookMapper
 
     private static BookRatingDto ToRatingDto(BookRating rating)
     {
-        return new BookRatingDto(rating.Id, rating.BookId, rating.Value, rating.Comment, rating.CreatedAt);
+        return new BookRatingDto(
+            rating.Id,
+            rating.BookId,
+            rating.UserId,
+            rating.Value,
+            rating.Comment,
+            rating.CreatedAt);
     }
 
     private static decimal CalculateAverageRating(IReadOnlyCollection<BookRating> ratings)

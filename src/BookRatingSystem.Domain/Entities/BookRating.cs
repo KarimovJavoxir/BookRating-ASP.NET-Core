@@ -12,8 +12,13 @@ public sealed class BookRating
     {
     }
 
-    private BookRating(Guid id, Guid bookId, int value, string? comment, DateTimeOffset createdAt)
+    private BookRating(Guid id, Guid bookId, Guid userId, int value, string? comment, DateTimeOffset createdAt)
     {
+        if (userId == Guid.Empty)
+        {
+            throw new InvalidBookRatingException("Rating user id is required.");
+        }
+
         if (value is < MinValue or > MaxValue)
         {
             throw new InvalidBookRatingException($"Rating value must be between {MinValue} and {MaxValue}.");
@@ -27,6 +32,7 @@ public sealed class BookRating
 
         Id = id;
         BookId = bookId;
+        UserId = userId;
         Value = value;
         Comment = normalizedComment;
         CreatedAt = createdAt;
@@ -34,13 +40,21 @@ public sealed class BookRating
 
     public Guid Id { get; private set; }
     public Guid BookId { get; private set; }
+    public Guid UserId { get; private set; }
     public int Value { get; private set; }
     public string? Comment { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public Book? Book { get; private set; }
+    public User? User { get; private set; }
 
-    public static BookRating Create(Guid id, Guid bookId, int value, string? comment, DateTimeOffset createdAt)
+    public static BookRating Create(
+        Guid id,
+        Guid bookId,
+        Guid userId,
+        int value,
+        string? comment,
+        DateTimeOffset createdAt)
     {
-        return new BookRating(id, bookId, value, comment, createdAt);
+        return new BookRating(id, bookId, userId, value, comment, createdAt);
     }
 }

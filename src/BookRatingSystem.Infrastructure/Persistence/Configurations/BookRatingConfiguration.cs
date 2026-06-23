@@ -25,6 +25,12 @@ internal sealed class BookRatingConfiguration : IEntityTypeConfiguration<BookRat
             .IsRequired();
 
         builder.HasIndex(rating => rating.BookId);
+        builder.HasIndex(rating => rating.UserId);
+
+        builder.HasOne(rating => rating.User)
+            .WithMany(user => user.Ratings)
+            .HasForeignKey(rating => rating.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         var createdAt = new DateTimeOffset(2026, 6, 22, 0, 0, 0, TimeSpan.Zero);
 
@@ -33,6 +39,7 @@ internal sealed class BookRatingConfiguration : IEntityTypeConfiguration<BookRat
             {
                 Id = Guid.Parse("aaaaaaaa-1111-1111-1111-111111111111"),
                 BookId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                UserId = Guid.Parse("10000000-0000-0000-0000-000000000001"),
                 Value = 5,
                 Comment = "Mavzular sodda tushuntirilgan.",
                 CreatedAt = createdAt.AddMinutes(10)
@@ -41,6 +48,7 @@ internal sealed class BookRatingConfiguration : IEntityTypeConfiguration<BookRat
             {
                 Id = Guid.Parse("aaaaaaaa-2222-2222-2222-222222222222"),
                 BookId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                UserId = Guid.Parse("10000000-0000-0000-0000-000000000002"),
                 Value = 4,
                 Comment = "Amaliy misollar foydali.",
                 CreatedAt = createdAt.AddMinutes(20)
@@ -49,6 +57,7 @@ internal sealed class BookRatingConfiguration : IEntityTypeConfiguration<BookRat
             {
                 Id = Guid.Parse("aaaaaaaa-3333-3333-3333-333333333333"),
                 BookId = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                UserId = Guid.Parse("10000000-0000-0000-0000-000000000003"),
                 Value = 5,
                 Comment = "Database loyihalash uchun qulay qoʻllanma.",
                 CreatedAt = createdAt.AddMinutes(30)

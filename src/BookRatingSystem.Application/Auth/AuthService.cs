@@ -25,6 +25,7 @@ public sealed class AuthService(
             username,
             email,
             passwordHashService.HashPassword(password),
+            profilePictureUrl: null,
             isAdmin: false,
             DateTimeOffset.UtcNow);
 
@@ -52,7 +53,7 @@ public sealed class AuthService(
     {
         return new AuthResultDto(
             jwtTokenService.CreateToken(user),
-            new AuthUserDto(user.Id, user.Username, user.Email, user.IsAdmin));
+            new AuthUserDto(user.Id, user.Username, user.Email, user.ProfilePictureUrl, user.IsAdmin));
     }
 
     private static string Normalize(string value, string parameterName)

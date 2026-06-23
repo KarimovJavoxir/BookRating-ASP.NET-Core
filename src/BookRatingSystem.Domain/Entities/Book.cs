@@ -77,9 +77,9 @@ public sealed class Book
         UpdatedAt = updatedAt;
     }
 
-    public BookRating AddRating(int value, string? comment, DateTimeOffset createdAt)
+    public BookRating AddRating(Guid userId, int value, string? comment, DateTimeOffset createdAt)
     {
-        var rating = BookRating.Create(Guid.NewGuid(), Id, value, comment, createdAt);
+        var rating = BookRating.Create(Guid.NewGuid(), Id, userId, value, comment, createdAt);
         Ratings.Add(rating);
         UpdatedAt = createdAt;
         return rating;

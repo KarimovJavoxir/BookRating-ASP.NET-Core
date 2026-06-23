@@ -48,7 +48,7 @@ backend/
 Implemented:
 
 * `Book` and `BookRating` domain entities;
-* `User` domain entity with `is_admin` database field;
+* `User` domain entity with `is_admin` and `profile_picture_url` database fields;
 * EF Core `BookRatingDbContext`;
 * explicit EF Core entity configurations;
 * initial PostgreSQL migration;
@@ -206,10 +206,12 @@ Current fields:
 ```text
 Id
 BookId
+UserId
 Value
 Comment
 CreatedAt
 Book
+User
 ```
 
 Rating value must be from 1 to 5.
@@ -218,7 +220,26 @@ Comment length is limited to 500 characters.
 
 A book can have many ratings.
 
+Each rating belongs to one user through `BookRating.UserId`.
+
 `averageRating` and `ratingsCount` are calculated from ratings instead of stored directly.
+
+### User
+
+Represents an authenticated API user.
+
+Current fields:
+
+```text
+Id
+Username
+Email
+PasswordHash
+ProfilePictureUrl
+IsAdmin
+CreatedAt
+Ratings
+```
 
 ## Database rules
 
@@ -243,6 +264,7 @@ IX_books_Title
 IX_books_Author
 IX_books_Category
 IX_book_ratings_BookId
+IX_book_ratings_UserId
 IX_users_Email
 IX_users_Username
 ```
@@ -252,9 +274,10 @@ Current migrations:
 ```text
 20260622185401_InitialCreate
 20260623084940_AddUsersAndJwtAuth
+20260623090221_AddUserProfilePicturesAndRatingUsers
 ```
 
-The migrations include simple development seed data for books, ratings, 20 normal users, and 1 admin user. Seed admin login is `admin` / `Admin123!`; seed normal users use `user01` through `user20` with password `User123!`.
+The migrations include simple development seed data for books, ratings, 20 normal users, and 1 admin user. Seed admin login is `admin` / `Admin123!`; seed normal users use `user01` through `user20` with password `User123!`. Seed users have empty `profile_picture_url` values so real face/profile image URLs can be filled later.
 
 Do not hardcode production credentials.
 
@@ -307,6 +330,17 @@ coverImageUrl
 averageRating
 ratingsCount
 recentRatings
+```
+
+Recent rating items include:
+
+```text
+id
+bookId
+userId
+value
+comment
+createdAt
 ```
 
 Rating submission request:

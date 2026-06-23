@@ -22,8 +22,8 @@ public class BookServiceTests
             null,
             createdAt);
 
-        book.AddRating(5, "Juda foydali", createdAt.AddMinutes(1));
-        book.AddRating(3, null, createdAt.AddMinutes(2));
+        book.AddRating(Guid.Parse("10000000-0000-0000-0000-000000000001"), 5, "Juda foydali", createdAt.AddMinutes(1));
+        book.AddRating(Guid.Parse("10000000-0000-0000-0000-000000000002"), 3, null, createdAt.AddMinutes(2));
 
         var service = new BookService(
             new FakeBookRepository(book),
@@ -43,6 +43,7 @@ public class BookServiceTests
     public async Task SubmitRatingAsync_adds_rating_and_returns_updated_details()
     {
         var now = new DateTimeOffset(2026, 6, 22, 11, 0, 0, TimeSpan.Zero);
+        var userId = Guid.Parse("10000000-0000-0000-0000-000000000001");
         var book = Book.Create(
             Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
             "Maʼlumotlar bazasi",
@@ -62,7 +63,7 @@ public class BookServiceTests
 
         var result = await service.SubmitRatingAsync(
             book.Id,
-            new SubmitBookRatingCommand(5, "Tushunarli yozilgan"),
+            new SubmitBookRatingCommand(userId, 5, "Tushunarli yozilgan"),
             CancellationToken.None);
 
         Assert.Equal(5.0m, result.AverageRating);
@@ -71,6 +72,7 @@ public class BookServiceTests
         Assert.Equal([book.Id], indexingService.IndexedBookIds);
 
         var rating = Assert.Single(result.RecentRatings);
+        Assert.Equal(userId, rating.UserId);
         Assert.Equal(5, rating.Value);
         Assert.Equal("Tushunarli yozilgan", rating.Comment);
         Assert.Equal(now, rating.CreatedAt);
@@ -100,7 +102,10 @@ public class BookServiceTests
         await Assert.ThrowsAsync<InvalidBookRatingException>(() =>
             service.SubmitRatingAsync(
                 book.Id,
-                new SubmitBookRatingCommand(6, null),
+                new SubmitBookRatingCommand(
+                    Guid.Parse("10000000-0000-0000-0000-000000000002"),
+                    6,
+                    null),
                 CancellationToken.None));
 
         Assert.Equal(0, unitOfWork.SaveChangesCalls);
@@ -162,8 +167,8 @@ public class BookServiceTests
             2020,
             null,
             createdAt);
-        book.AddRating(5, null, createdAt.AddMinutes(1));
-        book.AddRating(3, null, createdAt.AddMinutes(2));
+        book.AddRating(Guid.Parse("10000000-0000-0000-0000-000000000003"), 5, null, createdAt.AddMinutes(1));
+        book.AddRating(Guid.Parse("10000000-0000-0000-0000-000000000004"), 3, null, createdAt.AddMinutes(2));
 
         var unitOfWork = new FakeUnitOfWork();
         var indexingService = new FakeBookIndexingService();

@@ -105,7 +105,7 @@ public sealed class BookService(
             throw new BookNotFoundException(bookId);
         }
 
-        book.AddRating(command.Value, command.Comment, clock.UtcNow);
+        book.AddRating(command.UserId, command.Value, command.Comment, clock.UtcNow);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await TryIndexBookAsync(book.Id, "rating submission", cancellationToken);
 

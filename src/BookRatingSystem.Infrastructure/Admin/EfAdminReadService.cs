@@ -58,6 +58,8 @@ internal sealed class EfAdminReadService(BookRatingDbContext dbContext) : IAdmin
                 rating.User == null ? null : rating.User.ProfilePictureUrl,
                 rating.Value,
                 rating.Comment,
+                rating.Status.ToString(),
+                rating.BanReason,
                 rating.CreatedAt))
             .ToListAsync(cancellationToken);
     }
@@ -92,6 +94,8 @@ internal sealed class EfAdminReadService(BookRatingDbContext dbContext) : IAdmin
                 rating.User == null ? null : rating.User.ProfilePictureUrl,
                 rating.Value,
                 rating.Comment,
+                rating.Status.ToString(),
+                rating.BanReason,
                 rating.CreatedAt))
             .ToListAsync(cancellationToken);
 

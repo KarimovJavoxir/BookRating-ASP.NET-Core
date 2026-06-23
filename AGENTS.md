@@ -53,7 +53,7 @@ Implemented:
 * EF Core `BookRatingDbContext`;
 * explicit EF Core entity configurations;
 * initial PostgreSQL migration;
-* development seed data for books, ratings, 20 normal users, and 1 admin;
+* real PostgreSQL-backed data flow for books, ratings, users, and admin access;
 * REST endpoints for public book list/details/search, admin book list/create/update/delete, ratings, register, login, admin users, admin ratings, and admin dashboard;
 * simple JWT authentication;
 * authorization policies for admin-only book management and authenticated rating submission;
@@ -280,7 +280,9 @@ Current migrations:
 20260623124430_AddBookStatus
 ```
 
-The migrations include simple development seed data for books, ratings, 20 normal users, and 1 admin user. Seed admin login is `admin` / `Admin123!`; seed normal users use `user01` through `user20` with password `User123!`. Seed users have empty `profile_picture_url` values so real face/profile image URLs can be filled later.
+Do not rely on fake, mock, dummy, or demo seed data for backend behavior.
+
+The backend must be written as production-oriented code that works with real PostgreSQL data, real API requests, and real authenticated users. If initial data is needed, use an intentional, clearly documented production-safe import or admin-created records rather than fake development users, fake ratings, or placeholder book datasets.
 
 Do not hardcode production credentials.
 
@@ -412,15 +414,15 @@ The API should remain easy to test from Swagger UI.
 
 Use meaningful endpoint names, request DTOs, and response DTOs.
 
-## Data seeding
+## Data and seeding
 
-Development seed data is configured through EF Core entity configuration and included in the initial migration.
+Do not add fake development seed data, mock datasets, or hardcoded demo records to EF Core configurations or migrations.
 
-Seed data should stay realistic but not excessive.
+If the application needs starting data, it must come from a real source approved for the project, an explicit import process, or records created through the admin API.
 
 Do not seed copyrighted book descriptions or long copied texts.
 
-If seed data changes, create or update migrations intentionally and verify the generated migration.
+If real initial data requirements change, create or update migrations intentionally and verify the generated migration. Keep credentials and environment-specific data outside source control.
 
 ## Error handling
 

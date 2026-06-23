@@ -117,6 +117,11 @@ namespace BookRatingSystem.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("BanReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("ban_reason");
+
                     b.Property<Guid>("BookId")
                         .HasColumnType("uuid");
 
@@ -126,6 +131,13 @@ namespace BookRatingSystem.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("New")
+                        .HasColumnName("status");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -148,6 +160,7 @@ namespace BookRatingSystem.Infrastructure.Persistence.Migrations
                             BookId = new Guid("11111111-1111-1111-1111-111111111111"),
                             Comment = "Mavzular sodda tushuntirilgan.",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 22, 0, 10, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Status = "New",
                             UserId = new Guid("10000000-0000-0000-0000-000000000001"),
                             Value = 5
                         },
@@ -157,6 +170,7 @@ namespace BookRatingSystem.Infrastructure.Persistence.Migrations
                             BookId = new Guid("11111111-1111-1111-1111-111111111111"),
                             Comment = "Amaliy misollar foydali.",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 22, 0, 20, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Status = "New",
                             UserId = new Guid("10000000-0000-0000-0000-000000000002"),
                             Value = 4
                         },
@@ -166,6 +180,7 @@ namespace BookRatingSystem.Infrastructure.Persistence.Migrations
                             BookId = new Guid("22222222-2222-2222-2222-222222222222"),
                             Comment = "Database loyihalash uchun qulay qoʻllanma.",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 22, 0, 30, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Status = "New",
                             UserId = new Guid("10000000-0000-0000-0000-000000000003"),
                             Value = 5
                         });

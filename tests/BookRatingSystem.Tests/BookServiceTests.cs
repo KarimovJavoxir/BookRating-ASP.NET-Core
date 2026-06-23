@@ -147,7 +147,46 @@ public class BookServiceTests
         Assert.Equal(userId, rating.UserId);
         Assert.Equal(5, rating.Value);
         Assert.Equal("Tushunarli yozilgan", rating.Comment);
+        Assert.Equal(BookRatingStatus.New.ToString(), rating.Status);
+        Assert.Null(rating.BanReason);
         Assert.Equal(now, rating.CreatedAt);
+    }
+
+    [Fact]
+    public async Task GetBookByIdAsync_includes_rating_status_and_ban_reason()
+    {
+        var now = new DateTimeOffset(2026, 6, 23, 15, 30, 0, TimeSpan.Zero);
+        var userId = Guid.Parse("10000000-0000-0000-0000-000000000012");
+        var book = Book.Create(
+            Guid.Parse("98989898-9898-9898-9898-989898989898"),
+            "Rating status testi",
+            "A. Muallif",
+            "Test",
+            null,
+            2026,
+            null,
+            now);
+        book.Ratings.Add(BookRating.Create(
+            Guid.Parse("77777777-7777-7777-7777-777777777777"),
+            book.Id,
+            userId,
+            2,
+            "Mos emas",
+            now.AddMinutes(1),
+            BookRatingStatus.Banned,
+            "  Notoʻgʻri izoh  "));
+
+        var service = new BookService(
+            new FakeBookRepository(book),
+            new FakeUnitOfWork(),
+            new FixedClock(now),
+            new FakeBookIndexingService());
+
+        var result = await service.GetBookByIdAsync(book.Id, CancellationToken.None);
+
+        var recentRating = Assert.Single(result.RecentRatings);
+        Assert.Equal(BookRatingStatus.Banned.ToString(), recentRating.Status);
+        Assert.Equal("Notoʻgʻri izoh", recentRating.BanReason);
     }
 
     [Fact]

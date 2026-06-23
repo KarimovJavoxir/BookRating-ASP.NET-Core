@@ -9,4 +9,6 @@ public sealed record AdminBookRatingDto(
     string? UserProfilePictureUrl,
     int Value,
     string? Comment,
+    string Status,
+    string? BanReason,
     DateTimeOffset CreatedAt);

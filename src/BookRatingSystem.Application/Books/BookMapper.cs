@@ -50,6 +50,8 @@ internal static class BookMapper
             rating.User?.ProfilePictureUrl,
             rating.Value,
             rating.Comment,
+            rating.Status.ToString(),
+            rating.BanReason,
             rating.CreatedAt);
     }
 

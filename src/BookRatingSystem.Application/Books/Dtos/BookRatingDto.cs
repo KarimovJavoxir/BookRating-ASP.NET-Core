@@ -8,4 +8,6 @@ public sealed record BookRatingDto(
     string? UserProfilePictureUrl,
     int Value,
     string? Comment,
+    string Status,
+    string? BanReason,
     DateTimeOffset CreatedAt);

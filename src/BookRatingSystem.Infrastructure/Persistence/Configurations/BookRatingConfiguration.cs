@@ -21,6 +21,16 @@ internal sealed class BookRatingConfiguration : IEntityTypeConfiguration<BookRat
         builder.Property(rating => rating.Comment)
             .HasMaxLength(BookRating.MaxCommentLength);
 
+        builder.Property(rating => rating.Status)
+            .HasColumnName("status")
+            .HasConversion<string>()
+            .HasDefaultValue(BookRatingStatus.New)
+            .IsRequired();
+
+        builder.Property(rating => rating.BanReason)
+            .HasColumnName("ban_reason")
+            .HasMaxLength(BookRating.MaxBanReasonLength);
+
         builder.Property(rating => rating.CreatedAt)
             .IsRequired();
 
@@ -42,6 +52,8 @@ internal sealed class BookRatingConfiguration : IEntityTypeConfiguration<BookRat
                 UserId = Guid.Parse("10000000-0000-0000-0000-000000000001"),
                 Value = 5,
                 Comment = "Mavzular sodda tushuntirilgan.",
+                Status = BookRatingStatus.New,
+                BanReason = (string?)null,
                 CreatedAt = createdAt.AddMinutes(10)
             },
             new
@@ -51,6 +63,8 @@ internal sealed class BookRatingConfiguration : IEntityTypeConfiguration<BookRat
                 UserId = Guid.Parse("10000000-0000-0000-0000-000000000002"),
                 Value = 4,
                 Comment = "Amaliy misollar foydali.",
+                Status = BookRatingStatus.New,
+                BanReason = (string?)null,
                 CreatedAt = createdAt.AddMinutes(20)
             },
             new
@@ -60,6 +74,8 @@ internal sealed class BookRatingConfiguration : IEntityTypeConfiguration<BookRat
                 UserId = Guid.Parse("10000000-0000-0000-0000-000000000003"),
                 Value = 5,
                 Comment = "Database loyihalash uchun qulay qoʻllanma.",
+                Status = BookRatingStatus.New,
+                BanReason = (string?)null,
                 CreatedAt = createdAt.AddMinutes(30)
             });
     }

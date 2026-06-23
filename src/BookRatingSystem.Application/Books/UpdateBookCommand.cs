@@ -1,3 +1,5 @@
+using BookRatingSystem.Domain.Entities;
+
 namespace BookRatingSystem.Application.Books;
 
 public sealed record UpdateBookCommand(
@@ -6,4 +8,5 @@ public sealed record UpdateBookCommand(
     string? Category,
     string? Description,
     int? PublishedYear,
-    string? CoverImageUrl);
+    string? CoverImageUrl,
+    BookStatus Status = BookStatus.Verified);

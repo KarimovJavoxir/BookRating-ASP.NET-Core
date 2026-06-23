@@ -21,7 +21,9 @@ public sealed record UpdateBookRequest(
     int? PublishedYear,
 
     [param: StringLength(Book.MaxCoverImageUrlLength)]
-    string? CoverImageUrl) : IValidatableObject
+    string? CoverImageUrl,
+
+    string? Status = "Verified") : IValidatableObject
 {
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

@@ -7,4 +7,5 @@ public sealed record BookSearchResultDto(
     string? Category,
     string? CoverImageUrl,
     decimal AverageRating,
-    int RatingsCount);
+    int RatingsCount,
+    string Status);

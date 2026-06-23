@@ -21,6 +21,7 @@ internal sealed class PostgresBookSearchService(BookRatingDbContext dbContext) :
 
         return await dbContext.Books
             .AsNoTracking()
+            .Where(book => book.Status == Domain.Entities.BookStatus.Verified)
             .Where(book =>
                 EF.Functions.ILike(book.Title, pattern) ||
                 EF.Functions.ILike(book.Author, pattern) ||
@@ -35,7 +36,8 @@ internal sealed class PostgresBookSearchService(BookRatingDbContext dbContext) :
                 book.Ratings.Count == 0
                     ? 0m
                     : Math.Round(book.Ratings.Average(rating => (decimal)rating.Value), 2),
-                book.Ratings.Count))
+                book.Ratings.Count,
+                book.Status.ToString()))
             .ToListAsync(cancellationToken);
     }
 }

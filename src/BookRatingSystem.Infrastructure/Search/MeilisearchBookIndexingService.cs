@@ -24,7 +24,8 @@ internal sealed class MeilisearchBookIndexingService(
     private static readonly string[] FilterableAttributes =
     [
         "category",
-        "publishedYear"
+        "publishedYear",
+        "status"
     ];
 
     private static readonly string[] SortableAttributes =

@@ -10,4 +10,5 @@ public sealed record BookDetailsDto(
     string? CoverImageUrl,
     decimal AverageRating,
     int RatingsCount,
+    string Status,
     IReadOnlyList<BookRatingDto> RecentRatings);

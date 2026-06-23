@@ -14,7 +14,7 @@ public sealed class BookService(
 {
     public async Task<IReadOnlyList<BookListItemDto>> GetBooksAsync(CancellationToken cancellationToken)
     {
-        var books = await bookRepository.ListAsync(cancellationToken);
+        var books = await bookRepository.ListVerifiedAsync(cancellationToken);
 
         return books
             .OrderBy(book => book.Title)
@@ -25,7 +25,7 @@ public sealed class BookService(
     public async Task<BookDetailsDto> GetBookByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         var book = await bookRepository.GetByIdAsync(id, cancellationToken);
-        if (book is null)
+        if (book is null || book.Status != BookStatus.Verified)
         {
             throw new BookNotFoundException(id);
         }
@@ -46,7 +46,8 @@ public sealed class BookService(
             command.Description,
             command.PublishedYear,
             command.CoverImageUrl,
-            now);
+            now,
+            command.Status);
 
         bookRepository.Add(book);
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -73,7 +74,8 @@ public sealed class BookService(
             command.Description,
             command.PublishedYear,
             command.CoverImageUrl,
-            clock.UtcNow);
+            clock.UtcNow,
+            command.Status);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await TryIndexBookAsync(book.Id, "update", cancellationToken);

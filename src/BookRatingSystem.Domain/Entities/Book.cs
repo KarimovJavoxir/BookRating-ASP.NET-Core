@@ -22,7 +22,8 @@ public sealed class Book
         string? description,
         int? publishedYear,
         string? coverImageUrl,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt,
+        BookStatus status = BookStatus.Verified)
     {
         Id = id;
         Title = NormalizeRequired(title, nameof(title), MaxTitleLength);
@@ -31,6 +32,7 @@ public sealed class Book
         Description = NormalizeOptional(description, nameof(description), MaxDescriptionLength);
         PublishedYear = publishedYear;
         CoverImageUrl = NormalizeOptional(coverImageUrl, nameof(coverImageUrl), MaxCoverImageUrlLength);
+        Status = status;
         CreatedAt = createdAt;
         UpdatedAt = createdAt;
     }
@@ -42,6 +44,7 @@ public sealed class Book
     public string? Description { get; private set; }
     public int? PublishedYear { get; private set; }
     public string? CoverImageUrl { get; private set; }
+    public BookStatus Status { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
     public List<BookRating> Ratings { get; private set; } = [];
@@ -54,9 +57,10 @@ public sealed class Book
         string? description,
         int? publishedYear,
         string? coverImageUrl,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt,
+        BookStatus status = BookStatus.Verified)
     {
-        return new Book(id, title, author, category, description, publishedYear, coverImageUrl, createdAt);
+        return new Book(id, title, author, category, description, publishedYear, coverImageUrl, createdAt, status);
     }
 
     public void Update(
@@ -66,7 +70,8 @@ public sealed class Book
         string? description,
         int? publishedYear,
         string? coverImageUrl,
-        DateTimeOffset updatedAt)
+        DateTimeOffset updatedAt,
+        BookStatus status)
     {
         Title = NormalizeRequired(title, nameof(title), MaxTitleLength);
         Author = NormalizeRequired(author, nameof(author), MaxAuthorLength);
@@ -74,6 +79,7 @@ public sealed class Book
         Description = NormalizeOptional(description, nameof(description), MaxDescriptionLength);
         PublishedYear = publishedYear;
         CoverImageUrl = NormalizeOptional(coverImageUrl, nameof(coverImageUrl), MaxCoverImageUrlLength);
+        Status = status;
         UpdatedAt = updatedAt;
     }
 

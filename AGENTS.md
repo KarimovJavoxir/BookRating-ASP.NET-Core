@@ -48,12 +48,13 @@ backend/
 Implemented:
 
 * `Book` and `BookRating` domain entities;
+* `BookStatus` domain enum with `New`, `Banned`, and `Verified` statuses;
 * `User` domain entity with `is_admin` and `profile_picture_url` database fields;
 * EF Core `BookRatingDbContext`;
 * explicit EF Core entity configurations;
 * initial PostgreSQL migration;
 * development seed data for books, ratings, 20 normal users, and 1 admin;
-* REST endpoints for book list/details/search/create/update/delete, ratings, register, and login;
+* REST endpoints for public book list/details/search, admin book list/create/update/delete, ratings, register, login, admin users, admin ratings, and admin dashboard;
 * simple JWT authentication;
 * authorization policies for admin-only book management and authenticated rating submission;
 * Meilisearch search behind `IBookSearchService`;
@@ -61,14 +62,13 @@ Implemented:
 * PostgreSQL fallback search through `PostgresBookSearchService`;
 * CORS for `http://localhost:5173`;
 * Swagger UI in development;
-* basic application service tests.
+* basic application service and controller tests.
 
-Not implemented yet:
+Out of current scope:
 
-* admin panel;
 * borrowing, reservation, inventory, payment, notification, or user-role modules.
 
-Do not implement items from the “not implemented yet” list unless the user explicitly asks.
+Do not implement out-of-scope library workflows unless the user explicitly asks.
 
 ## Backend goals
 
@@ -80,6 +80,7 @@ Core features:
 * list books;
 * get book details;
 * create, update, and delete books;
+* keep book visibility controlled by `BookStatus` (`New`, `Banned`, `Verified`);
 * search books through Meilisearch, with PostgreSQL fallback when configured;
 * submit book rating;
 * register and login users with JWT authentication;
@@ -192,6 +193,7 @@ Category
 Description
 PublishedYear
 CoverImageUrl
+Status
 CreatedAt
 UpdatedAt
 Ratings
@@ -275,6 +277,7 @@ Current migrations:
 20260622185401_InitialCreate
 20260623084940_AddUsersAndJwtAuth
 20260623090221_AddUserProfilePicturesAndRatingUsers
+20260623124430_AddBookStatus
 ```
 
 The migrations include simple development seed data for books, ratings, 20 normal users, and 1 admin user. Seed admin login is `admin` / `Admin123!`; seed normal users use `user01` through `user20` with password `User123!`. Seed users have empty `profile_picture_url` values so real face/profile image URLs can be filled later.
@@ -293,15 +296,19 @@ GET    /api/books/{id}
 GET    /api/books/search?q=...
 POST   /api/auth/register
 POST   /api/auth/login
+GET    /api/admin/books           AdminOnly policy required
+GET    /api/admin/users           AdminOnly policy required
+GET    /api/admin/ratings         AdminOnly policy required
+GET    /api/admin/dashboard       AdminOnly policy required
 POST   /api/books                 AdminOnly policy required
 PUT    /api/books/{id}            AdminOnly policy required
 DELETE /api/books/{id}            AdminOnly policy required
 POST   /api/books/{id}/ratings    AuthenticatedUser policy required
 ```
 
-Do not add extra endpoints unless they are useful for the diploma demo or explicitly requested.
+Public `GET /api/books`, `GET /api/books/{id}`, and `GET /api/books/search` return only `Verified` books. Admin book endpoints return all statuses.
 
-Do not add extra authentication-protected admin behavior beyond book create/update/delete unless explicitly requested.
+Do not add extra authentication-protected admin behavior beyond the implemented dashboard/books/users/ratings scope unless explicitly requested.
 
 ## API response expectations
 
@@ -315,6 +322,7 @@ category
 coverImageUrl
 averageRating
 ratingsCount
+status
 ```
 
 Book details include:
@@ -329,6 +337,7 @@ publishedYear
 coverImageUrl
 averageRating
 ratingsCount
+status
 recentRatings
 ```
 
@@ -342,6 +351,8 @@ value
 comment
 createdAt
 ```
+
+Admin dashboard includes total books, total users, total ratings, books added in range, ratings added in range, average rating in range, and recent ratings for the selected date range.
 
 Rating submission request:
 
@@ -607,6 +618,6 @@ Do not claim tests exist before they are written.
 
 Do not claim the system is secure, optimized, deployed, or production-ready unless the code proves it.
 
-Do not expand authentication, admin panel, borrowing, reservation, inventory, payment, notification, or user-role modules unless explicitly requested.
+Do not expand authentication, admin panel, borrowing, reservation, inventory, payment, notification, or user-role modules beyond the implemented scope unless explicitly requested.
 
 Keep the project aligned with the diploma topic: online book rating.

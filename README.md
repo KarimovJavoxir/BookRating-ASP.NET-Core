@@ -59,6 +59,8 @@ Search endpoint:
 GET /api/books/search?q=...
 ```
 
+Public book list, details, and search return only books with `status = Verified`. Books with `New` or `Banned` status remain visible in the admin book table.
+
 The endpoint uses Meilisearch through `IBookSearchService`. If Meilisearch is unavailable and `Meilisearch:UsePostgresFallback` is `true`, backend logs a warning and uses PostgreSQL search as fallback. To surface Meilisearch failures during development, set:
 
 ```json
@@ -73,12 +75,44 @@ The endpoint uses Meilisearch through `IBookSearchService`. If Meilisearch is un
 
 Current implemented flow:
 
-* book creation saves the new book to PostgreSQL, then calls `IBookIndexingService.IndexBookAsync` so the book can appear in search results;
-* book update saves changed PostgreSQL data, then calls `IBookIndexingService.IndexBookAsync`; the Meilisearch document is rebuilt from PostgreSQL, including recalculated `averageRating` and `ratingsCount`;
+* book creation saves the new book to PostgreSQL, then calls `IBookIndexingService.IndexBookAsync`;
+* book update saves changed PostgreSQL data, then calls `IBookIndexingService.IndexBookAsync`; the Meilisearch document is rebuilt from PostgreSQL, including recalculated `averageRating`, `ratingsCount`, and `status`;
 * book deletion removes the book from PostgreSQL, then calls `IBookIndexingService.DeleteBookAsync` to remove the document from the search index;
 * rating submission saves the rating to PostgreSQL, then re-indexes the rated book so `averageRating` and `ratingsCount` stay fresh in search results.
 
 If Meilisearch synchronization fails after a successful PostgreSQL save, the backend logs a warning and keeps PostgreSQL as the source of truth.
+
+## Authentication and admin endpoints
+
+Seed admin login:
+
+```text
+admin / Admin123!
+```
+
+Implemented auth/admin endpoints:
+
+```text
+POST /api/auth/register
+POST /api/auth/login
+GET  /api/admin/books
+GET  /api/admin/users
+GET  /api/admin/ratings
+GET  /api/admin/dashboard?from=YYYY-MM-DD&to=YYYY-MM-DD
+POST /api/books
+PUT  /api/books/{id}
+DELETE /api/books/{id}
+```
+
+Admin book status values:
+
+```text
+New
+Banned
+Verified
+```
+
+Only `Verified` books are shown on the public site.
 
 ## Troubleshooting
 

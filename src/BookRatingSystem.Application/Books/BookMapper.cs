@@ -14,7 +14,8 @@ internal static class BookMapper
             book.Category,
             book.CoverImageUrl,
             CalculateAverageRating(book.Ratings),
-            book.Ratings.Count);
+            book.Ratings.Count,
+            book.Status.ToString());
     }
 
     public static BookDetailsDto ToDetails(Book book)
@@ -35,6 +36,7 @@ internal static class BookMapper
             book.CoverImageUrl,
             CalculateAverageRating(book.Ratings),
             book.Ratings.Count,
+            book.Status.ToString(),
             recentRatings);
     }
 
@@ -44,6 +46,8 @@ internal static class BookMapper
             rating.Id,
             rating.BookId,
             rating.UserId,
+            rating.User?.Username,
+            rating.User?.ProfilePictureUrl,
             rating.Value,
             rating.Comment,
             rating.CreatedAt);

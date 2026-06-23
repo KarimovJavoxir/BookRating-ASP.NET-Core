@@ -30,4 +30,7 @@ public sealed class BookSearchDocument
 
     [JsonPropertyName("ratingsCount")]
     public int RatingsCount { get; init; }
+
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = string.Empty;
 }

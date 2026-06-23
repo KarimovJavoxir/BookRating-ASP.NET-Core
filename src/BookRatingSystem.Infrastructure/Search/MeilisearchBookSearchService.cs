@@ -30,7 +30,8 @@ internal sealed class MeilisearchBookSearchService(
                 trimmedQuery,
                 new SearchQuery
                 {
-                    Limit = 50
+                    Limit = 50,
+                    Filter = "status = Verified"
                 },
                 cancellationToken);
 

@@ -2,6 +2,7 @@ using BookRatingSystem.Api.Contracts;
 using BookRatingSystem.Application.Abstractions;
 using BookRatingSystem.Application.Books;
 using BookRatingSystem.Application.Books.Dtos;
+using BookRatingSystem.Domain.Entities;
 using BookRatingSystem.Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -57,7 +58,8 @@ public sealed class BooksController(
                     request.Category,
                     request.Description,
                     request.PublishedYear,
-                    request.CoverImageUrl),
+                    request.CoverImageUrl,
+                    ParseBookStatus(request.Status)),
                 cancellationToken);
 
             return CreatedAtAction(nameof(GetBook), new { id = book.Id }, book);
@@ -88,7 +90,8 @@ public sealed class BooksController(
                     request.Category,
                     request.Description,
                     request.PublishedYear,
-                    request.CoverImageUrl),
+                    request.CoverImageUrl,
+                    ParseBookStatus(request.Status)),
                 cancellationToken);
 
             return Ok(book);
@@ -204,6 +207,16 @@ public sealed class BooksController(
             title: "Kitob maʼlumotlari notoʻgʻri.",
             detail: exception.Message,
             statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    private static BookStatus ParseBookStatus(string? status)
+    {
+        if (Enum.TryParse<BookStatus>(status, ignoreCase: true, out var parsedStatus))
+        {
+            return parsedStatus;
+        }
+
+        throw new ArgumentException("Book status must be New, Banned, or Verified.", nameof(status));
     }
 
     private Guid? GetCurrentUserId()

@@ -1,4 +1,6 @@
 using BookRatingSystem.Application.Abstractions;
+using BookRatingSystem.Application.Admin;
+using BookRatingSystem.Infrastructure.Admin;
 using BookRatingSystem.Infrastructure.Persistence;
 using BookRatingSystem.Infrastructure.Repositories;
 using BookRatingSystem.Infrastructure.Search;
@@ -57,6 +59,7 @@ public static class DependencyInjection
         });
         services.AddScoped<IBookRepository, EfBookRepository>();
         services.AddScoped<IUserRepository, EfUserRepository>();
+        services.AddScoped<IAdminReadService, EfAdminReadService>();
         services.AddScoped<IUnitOfWork>(provider => provider.GetRequiredService<BookRatingDbContext>());
         services.AddScoped<IPasswordHashService, Pbkdf2PasswordHashService>();
         services.AddScoped<PostgresBookSearchService>();

@@ -16,10 +16,21 @@ internal sealed class EfBookRepository(BookRatingDbContext dbContext) : IBookRep
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Book>> ListVerifiedAsync(CancellationToken cancellationToken)
+    {
+        return await dbContext.Books
+            .AsNoTracking()
+            .Where(book => book.Status == BookStatus.Verified)
+            .Include(book => book.Ratings)
+            .OrderBy(book => book.Title)
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<Book?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         return dbContext.Books
             .Include(book => book.Ratings)
+            .ThenInclude(rating => rating.User)
             .FirstOrDefaultAsync(book => book.Id == id, cancellationToken);
     }
 

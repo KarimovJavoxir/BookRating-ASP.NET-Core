@@ -32,6 +32,11 @@ internal sealed class BookConfiguration : IEntityTypeConfiguration<Book>
         builder.Property(book => book.CoverImageUrl)
             .HasMaxLength(Book.MaxCoverImageUrlLength);
 
+        builder.Property(book => book.Status)
+            .HasColumnName("status")
+            .HasConversion<string>()
+            .IsRequired();
+
         builder.Property(book => book.CreatedAt)
             .IsRequired();
 
@@ -59,6 +64,7 @@ internal sealed class BookConfiguration : IEntityTypeConfiguration<Book>
                 Description = "Algoritm tushunchasi, saralash va qidiruv usullari haqida oʻquv material.",
                 PublishedYear = 2024,
                 CoverImageUrl = (string?)null,
+                Status = BookStatus.Verified,
                 CreatedAt = createdAt,
                 UpdatedAt = createdAt
             },
@@ -71,6 +77,7 @@ internal sealed class BookConfiguration : IEntityTypeConfiguration<Book>
                 Description = "Relatsion maʼlumotlar bazasi, SQL va loyihalash asoslari.",
                 PublishedYear = 2023,
                 CoverImageUrl = (string?)null,
+                Status = BookStatus.Verified,
                 CreatedAt = createdAt,
                 UpdatedAt = createdAt
             },
@@ -83,6 +90,7 @@ internal sealed class BookConfiguration : IEntityTypeConfiguration<Book>
                 Description = "Kompyuter tarmoqlarining asosiy protokollari va amaliy qoʻllanilishi.",
                 PublishedYear = 2022,
                 CoverImageUrl = (string?)null,
+                Status = BookStatus.Verified,
                 CreatedAt = createdAt,
                 UpdatedAt = createdAt
             });

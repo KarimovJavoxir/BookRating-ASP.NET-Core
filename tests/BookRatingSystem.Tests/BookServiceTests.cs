@@ -3,6 +3,7 @@ using BookRatingSystem.Application.Books;
 using BookRatingSystem.Application.Books.Dtos;
 using BookRatingSystem.Domain.Entities;
 using BookRatingSystem.Domain.Exceptions;
+using System.Reflection;
 
 namespace BookRatingSystem.Tests;
 
@@ -37,6 +38,77 @@ public class BookServiceTests
         Assert.Equal(book.Id, item.Id);
         Assert.Equal(4.0m, item.AverageRating);
         Assert.Equal(2, item.RatingsCount);
+    }
+
+    [Fact]
+    public async Task GetBooksAsync_returns_only_verified_books_for_public_catalog()
+    {
+        var createdAt = new DateTimeOffset(2026, 6, 23, 16, 0, 0, TimeSpan.Zero);
+        var verifiedBook = Book.Create(
+            Guid.Parse("10101010-1010-1010-1010-101010101010"),
+            "Tasdiqlangan kitob",
+            "A. Muallif",
+            "Dasturlash",
+            null,
+            2026,
+            null,
+            createdAt,
+            status: BookStatus.Verified);
+        var unverifiedBook = Book.Create(
+            Guid.Parse("20202020-2020-2020-2020-202020202020"),
+            "Yangi kitob",
+            "B. Muallif",
+            "Dasturlash",
+            null,
+            2026,
+            null,
+            createdAt,
+            status: BookStatus.New);
+        var bannedBook = Book.Create(
+            Guid.Parse("21212121-2121-2121-2121-212121212121"),
+            "Bloklangan kitob",
+            "C. Muallif",
+            "Dasturlash",
+            null,
+            2026,
+            null,
+            createdAt,
+            status: BookStatus.Banned);
+        var service = new BookService(
+            new FakeBookRepository(verifiedBook, unverifiedBook, bannedBook),
+            new FakeUnitOfWork(),
+            new FixedClock(createdAt),
+            new FakeBookIndexingService());
+
+        var result = await service.GetBooksAsync(CancellationToken.None);
+
+        var item = Assert.Single(result);
+        Assert.Equal(verifiedBook.Id, item.Id);
+        Assert.Equal(BookStatus.Verified.ToString(), item.Status);
+    }
+
+    [Fact]
+    public async Task GetBookByIdAsync_rejects_unverified_books_for_public_details()
+    {
+        var createdAt = new DateTimeOffset(2026, 6, 23, 16, 30, 0, TimeSpan.Zero);
+        var unverifiedBook = Book.Create(
+            Guid.Parse("30303030-3030-3030-3030-303030303030"),
+            "Yashirilgan kitob",
+            "C. Muallif",
+            "Database",
+            null,
+            2026,
+            null,
+            createdAt,
+            status: BookStatus.New);
+        var service = new BookService(
+            new FakeBookRepository(unverifiedBook),
+            new FakeUnitOfWork(),
+            new FixedClock(createdAt),
+            new FakeBookIndexingService());
+
+        await Assert.ThrowsAsync<BookNotFoundException>(() =>
+            service.GetBookByIdAsync(unverifiedBook.Id, CancellationToken.None));
     }
 
     [Fact]
@@ -76,6 +148,44 @@ public class BookServiceTests
         Assert.Equal(5, rating.Value);
         Assert.Equal("Tushunarli yozilgan", rating.Comment);
         Assert.Equal(now, rating.CreatedAt);
+    }
+
+    [Fact]
+    public async Task GetBookByIdAsync_includes_recent_rating_user_profile_data()
+    {
+        var now = new DateTimeOffset(2026, 6, 23, 15, 0, 0, TimeSpan.Zero);
+        var userId = Guid.Parse("10000000-0000-0000-0000-000000000011");
+        var book = Book.Create(
+            Guid.Parse("99999999-9999-9999-9999-999999999999"),
+            "Profil rasmi testi",
+            "A. Muallif",
+            "Test",
+            null,
+            2026,
+            null,
+            now);
+        var rating = book.AddRating(userId, 4, "Yaxshi", now.AddMinutes(1));
+        var user = User.Create(
+            userId,
+            "user11",
+            "user11@example.com",
+            "hashed-password",
+            "https://example.com/users/user11.jpg",
+            isAdmin: false,
+            createdAt: now.AddDays(-1));
+        SetRatingUser(rating, user);
+
+        var service = new BookService(
+            new FakeBookRepository(book),
+            new FakeUnitOfWork(),
+            new FixedClock(now),
+            new FakeBookIndexingService());
+
+        var result = await service.GetBookByIdAsync(book.Id, CancellationToken.None);
+
+        var recentRating = Assert.Single(result.RecentRatings);
+        Assert.Equal("user11", recentRating.Username);
+        Assert.Equal("https://example.com/users/user11.jpg", recentRating.UserProfilePictureUrl);
     }
 
     [Fact]
@@ -308,6 +418,11 @@ public class BookServiceTests
             return Task.FromResult<IReadOnlyList<Book>>(_books.Values.ToList());
         }
 
+        public Task<IReadOnlyList<Book>> ListVerifiedAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<Book>>(_books.Values.Where(book => book.Status == BookStatus.Verified).ToList());
+        }
+
         public Task<Book?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
             _books.TryGetValue(id, out var book);
@@ -375,5 +490,12 @@ public class BookServiceTests
             DeletedBookIds.Add(bookId);
             return Task.CompletedTask;
         }
+    }
+
+    private static void SetRatingUser(BookRating rating, User user)
+    {
+        typeof(BookRating)
+            .GetProperty(nameof(BookRating.User), BindingFlags.Instance | BindingFlags.Public)!
+            .SetValue(rating, user);
     }
 }

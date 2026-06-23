@@ -19,7 +19,8 @@ internal static class BookSearchDocumentMapper
             PublishedYear = book.PublishedYear,
             CoverImageUrl = book.CoverImageUrl,
             AverageRating = decimal.ToDouble(averageRating),
-            RatingsCount = book.Ratings.Count
+            RatingsCount = book.Ratings.Count,
+            Status = book.Status.ToString()
         };
     }
 
@@ -32,7 +33,8 @@ internal static class BookSearchDocumentMapper
             document.Category,
             document.CoverImageUrl,
             Math.Round((decimal)document.AverageRating, 2, MidpointRounding.AwayFromZero),
-            document.RatingsCount);
+            document.RatingsCount,
+            document.Status);
     }
 
     private static decimal CalculateAverageRating(IReadOnlyCollection<BookRating> ratings)

@@ -1,10 +1,11 @@
 using BookRatingSystem.Application.Books.Dtos;
+using BookRatingSystem.Application.Common;
 
 namespace BookRatingSystem.Application.Books;
 
 public interface IBookService
 {
-    Task<IReadOnlyList<BookListItemDto>> GetBooksAsync(CancellationToken cancellationToken);
+    Task<PagedResult<BookListItemDto>> GetBooksAsync(PaginationQuery pagination, CancellationToken cancellationToken);
 
     Task<BookDetailsDto> GetBookByIdAsync(Guid id, CancellationToken cancellationToken);
 

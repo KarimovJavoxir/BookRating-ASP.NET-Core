@@ -1,5 +1,6 @@
 using BookRatingSystem.Api.Controllers;
 using BookRatingSystem.Application.Admin;
+using BookRatingSystem.Application.Common;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookRatingSystem.Tests;
@@ -31,10 +32,10 @@ public sealed class AdminControllerTests
     }
 
     [Fact]
-    public async Task GetBooks_returns_all_admin_books_including_unverified()
+    public async Task GetBooks_returns_requested_admin_books_page_including_unverified()
     {
-        var books = new[]
-        {
+        var books = new PagedResult<AdminBookDto>(
+        [
             new AdminBookDto(
                 Guid.Parse("40404040-4040-4040-4040-404040404040"),
                 "Tasdiqlanmagan kitob",
@@ -46,39 +47,112 @@ public sealed class AdminControllerTests
                 Status: "New",
                 AverageRating: 0,
                 RatingsCount: 0),
-        };
+        ], Page: 2, PageSize: 10, TotalCount: 11);
         var service = new FakeAdminReadService(
             new AdminDashboardDto(1, 0, 0, 1, 0, 0, []),
-            books);
+            books: books);
         var controller = new AdminController(service);
 
-        var response = await controller.GetBooks(CancellationToken.None);
+        var response = await controller.GetBooks(page: 2, pageSize: 10, CancellationToken.None);
 
         var okResult = Assert.IsType<OkObjectResult>(response.Result);
         Assert.Same(books, okResult.Value);
+        Assert.Equal(2, service.LastBooksPagination?.Page);
+        Assert.Equal(10, service.LastBooksPagination?.PageSize);
+    }
+
+    [Fact]
+    public async Task GetUsers_returns_requested_users_page()
+    {
+        var users = new PagedResult<AdminUserDto>(
+        [
+            new AdminUserDto(
+                Guid.Parse("50505050-5050-5050-5050-505050505050"),
+                "user01",
+                "user01@example.com",
+                null,
+                IsAdmin: false,
+                CreatedAt: DateTimeOffset.Parse("2026-06-24T09:00:00Z"),
+                RatingsCount: 4),
+        ], Page: 3, PageSize: 5, TotalCount: 13);
+        var service = new FakeAdminReadService(new AdminDashboardDto(0, 1, 0, 0, 0, 0, []), users: users);
+        var controller = new AdminController(service);
+
+        var response = await controller.GetUsers(page: 3, pageSize: 5, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(response.Result);
+        Assert.Same(users, okResult.Value);
+        Assert.Equal(3, service.LastUsersPagination?.Page);
+        Assert.Equal(5, service.LastUsersPagination?.PageSize);
+    }
+
+    [Fact]
+    public async Task GetRatings_returns_requested_ratings_page()
+    {
+        var ratings = new PagedResult<AdminBookRatingDto>(
+        [
+            new AdminBookRatingDto(
+                Guid.Parse("60606060-6060-6060-6060-606060606060"),
+                Guid.Parse("70707070-7070-7070-7070-707070707070"),
+                "Algoritmlar",
+                Guid.Parse("80808080-8080-8080-8080-808080808080"),
+                "user01",
+                null,
+                Value: 5,
+                Comment: "Foydali",
+                Status: "New",
+                BanReason: null,
+                CreatedAt: DateTimeOffset.Parse("2026-06-24T10:00:00Z")),
+        ], Page: 4, PageSize: 20, TotalCount: 63);
+        var service = new FakeAdminReadService(new AdminDashboardDto(0, 0, 1, 0, 1, 5, []), ratings: ratings);
+        var controller = new AdminController(service);
+
+        var response = await controller.GetRatings(page: 4, pageSize: 20, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(response.Result);
+        Assert.Same(ratings, okResult.Value);
+        Assert.Equal(4, service.LastRatingsPagination?.Page);
+        Assert.Equal(20, service.LastRatingsPagination?.PageSize);
     }
 
     private sealed class FakeAdminReadService(
         AdminDashboardDto dashboard,
-        IReadOnlyList<AdminBookDto>? books = null) : IAdminReadService
+        PagedResult<AdminBookDto>? books = null,
+        PagedResult<AdminUserDto>? users = null,
+        PagedResult<AdminBookRatingDto>? ratings = null) : IAdminReadService
     {
         public DateTimeOffset? LastFrom { get; private set; }
 
         public DateTimeOffset? LastTo { get; private set; }
 
-        public Task<IReadOnlyList<AdminBookDto>> GetBooksAsync(CancellationToken cancellationToken)
+        public PaginationQuery? LastBooksPagination { get; private set; }
+
+        public PaginationQuery? LastUsersPagination { get; private set; }
+
+        public PaginationQuery? LastRatingsPagination { get; private set; }
+
+        public Task<PagedResult<AdminBookDto>> GetBooksAsync(
+            PaginationQuery pagination,
+            CancellationToken cancellationToken)
         {
-            return Task.FromResult(books ?? []);
+            LastBooksPagination = pagination;
+            return Task.FromResult(books ?? new PagedResult<AdminBookDto>([], pagination.Page, pagination.PageSize, 0));
         }
 
-        public Task<IReadOnlyList<AdminUserDto>> GetUsersAsync(CancellationToken cancellationToken)
+        public Task<PagedResult<AdminUserDto>> GetUsersAsync(
+            PaginationQuery pagination,
+            CancellationToken cancellationToken)
         {
-            return Task.FromResult<IReadOnlyList<AdminUserDto>>([]);
+            LastUsersPagination = pagination;
+            return Task.FromResult(users ?? new PagedResult<AdminUserDto>([], pagination.Page, pagination.PageSize, 0));
         }
 
-        public Task<IReadOnlyList<AdminBookRatingDto>> GetRatingsAsync(CancellationToken cancellationToken)
+        public Task<PagedResult<AdminBookRatingDto>> GetRatingsAsync(
+            PaginationQuery pagination,
+            CancellationToken cancellationToken)
         {
-            return Task.FromResult<IReadOnlyList<AdminBookRatingDto>>([]);
+            LastRatingsPagination = pagination;
+            return Task.FromResult(ratings ?? new PagedResult<AdminBookRatingDto>([], pagination.Page, pagination.PageSize, 0));
         }
 
         public Task<AdminDashboardDto> GetDashboardAsync(

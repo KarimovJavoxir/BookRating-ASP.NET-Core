@@ -1,6 +1,7 @@
 using BookRatingSystem.Application.Abstractions;
 using BookRatingSystem.Application.Books;
 using BookRatingSystem.Application.Books.Dtos;
+using BookRatingSystem.Application.Common;
 using BookRatingSystem.Domain.Entities;
 using BookRatingSystem.Domain.Exceptions;
 using System.Reflection;
@@ -32,9 +33,9 @@ public class BookServiceTests
             new FixedClock(createdAt),
             new FakeBookIndexingService());
 
-        var result = await service.GetBooksAsync(CancellationToken.None);
+        var result = await service.GetBooksAsync(new PaginationQuery(), CancellationToken.None);
 
-        var item = Assert.Single(result);
+        var item = Assert.Single(result.Items);
         Assert.Equal(book.Id, item.Id);
         Assert.Equal(4.0m, item.AverageRating);
         Assert.Equal(2, item.RatingsCount);
@@ -80,11 +81,42 @@ public class BookServiceTests
             new FixedClock(createdAt),
             new FakeBookIndexingService());
 
-        var result = await service.GetBooksAsync(CancellationToken.None);
+        var result = await service.GetBooksAsync(new PaginationQuery(), CancellationToken.None);
 
-        var item = Assert.Single(result);
+        var item = Assert.Single(result.Items);
         Assert.Equal(verifiedBook.Id, item.Id);
         Assert.Equal(BookStatus.Verified.ToString(), item.Status);
+    }
+
+    [Fact]
+    public async Task GetBooksAsync_returns_requested_page_with_total_metadata()
+    {
+        var createdAt = new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero);
+        var books = Enumerable.Range(1, 5)
+            .Select(index => Book.Create(
+                Guid.Parse($"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa{index}"),
+                $"Kitob {index}",
+                "A. Muallif",
+                "Dasturlash",
+                null,
+                2026,
+                null,
+                createdAt,
+                status: BookStatus.Verified))
+            .ToArray();
+        var service = new BookService(
+            new FakeBookRepository(books),
+            new FakeUnitOfWork(),
+            new FixedClock(createdAt),
+            new FakeBookIndexingService());
+
+        var result = await service.GetBooksAsync(new PaginationQuery(page: 2, pageSize: 2), CancellationToken.None);
+
+        Assert.Equal(2, result.Page);
+        Assert.Equal(2, result.PageSize);
+        Assert.Equal(5, result.TotalCount);
+        Assert.Equal(3, result.TotalPages);
+        Assert.Equal(["Kitob 3", "Kitob 4"], result.Items.Select(book => book.Title));
     }
 
     [Fact]
@@ -452,14 +484,18 @@ public class BookServiceTests
     {
         private readonly Dictionary<Guid, Book> _books = books.ToDictionary(book => book.Id);
 
-        public Task<IReadOnlyList<Book>> ListAsync(CancellationToken cancellationToken)
+        public Task<PagedResult<Book>> ListAsync(PaginationQuery pagination, CancellationToken cancellationToken)
         {
-            return Task.FromResult<IReadOnlyList<Book>>(_books.Values.ToList());
+            return Task.FromResult(ToPagedResult(_books.Values.OrderBy(book => book.Title), pagination));
         }
 
-        public Task<IReadOnlyList<Book>> ListVerifiedAsync(CancellationToken cancellationToken)
+        public Task<PagedResult<Book>> ListVerifiedAsync(PaginationQuery pagination, CancellationToken cancellationToken)
         {
-            return Task.FromResult<IReadOnlyList<Book>>(_books.Values.Where(book => book.Status == BookStatus.Verified).ToList());
+            return Task.FromResult(ToPagedResult(
+                _books.Values
+                    .Where(book => book.Status == BookStatus.Verified)
+                    .OrderBy(book => book.Title),
+                pagination));
         }
 
         public Task<Book?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
@@ -476,6 +512,19 @@ public class BookServiceTests
         public void Delete(Book book)
         {
             _books.Remove(book.Id);
+        }
+
+        private static PagedResult<Book> ToPagedResult(IEnumerable<Book> books, PaginationQuery pagination)
+        {
+            var items = books.ToList();
+            return new PagedResult<Book>(
+                items
+                    .Skip(pagination.Skip)
+                    .Take(pagination.PageSize)
+                    .ToList(),
+                pagination.Page,
+                pagination.PageSize,
+                items.Count);
         }
     }
 

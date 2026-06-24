@@ -1,4 +1,5 @@
 using BookRatingSystem.Application.Admin;
+using BookRatingSystem.Application.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,10 +12,13 @@ public sealed class AdminController(IAdminReadService adminReadService) : Contro
 {
     [HttpGet("books")]
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
-    [ProducesResponseType(typeof(IReadOnlyList<AdminBookDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<AdminBookDto>>> GetBooks(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(PagedResult<AdminBookDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<AdminBookDto>>> GetBooks(
+        [FromQuery] int page = PaginationQuery.DefaultPage,
+        [FromQuery] int pageSize = PaginationQuery.DefaultPageSize,
+        CancellationToken cancellationToken = default)
     {
-        var books = await adminReadService.GetBooksAsync(cancellationToken);
+        var books = await adminReadService.GetBooksAsync(new PaginationQuery(page, pageSize), cancellationToken);
         return Ok(books);
     }
 
@@ -32,19 +36,25 @@ public sealed class AdminController(IAdminReadService adminReadService) : Contro
 
     [HttpGet("users")]
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
-    [ProducesResponseType(typeof(IReadOnlyList<AdminUserDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<AdminUserDto>>> GetUsers(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(PagedResult<AdminUserDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<AdminUserDto>>> GetUsers(
+        [FromQuery] int page = PaginationQuery.DefaultPage,
+        [FromQuery] int pageSize = PaginationQuery.DefaultPageSize,
+        CancellationToken cancellationToken = default)
     {
-        var users = await adminReadService.GetUsersAsync(cancellationToken);
+        var users = await adminReadService.GetUsersAsync(new PaginationQuery(page, pageSize), cancellationToken);
         return Ok(users);
     }
 
     [HttpGet("ratings")]
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
-    [ProducesResponseType(typeof(IReadOnlyList<AdminBookRatingDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<AdminBookRatingDto>>> GetRatings(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(PagedResult<AdminBookRatingDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<AdminBookRatingDto>>> GetRatings(
+        [FromQuery] int page = PaginationQuery.DefaultPage,
+        [FromQuery] int pageSize = PaginationQuery.DefaultPageSize,
+        CancellationToken cancellationToken = default)
     {
-        var ratings = await adminReadService.GetRatingsAsync(cancellationToken);
+        var ratings = await adminReadService.GetRatingsAsync(new PaginationQuery(page, pageSize), cancellationToken);
         return Ok(ratings);
     }
 }

@@ -1,5 +1,6 @@
 using BookRatingSystem.Application.Abstractions;
 using BookRatingSystem.Application.Books.Dtos;
+using BookRatingSystem.Application.Common;
 using BookRatingSystem.Domain.Entities;
 using Microsoft.Extensions.Logging;
 
@@ -12,14 +13,17 @@ public sealed class BookService(
     IBookIndexingService bookIndexingService,
     ILogger<BookService>? logger = null) : IBookService
 {
-    public async Task<IReadOnlyList<BookListItemDto>> GetBooksAsync(CancellationToken cancellationToken)
+    public async Task<PagedResult<BookListItemDto>> GetBooksAsync(
+        PaginationQuery pagination,
+        CancellationToken cancellationToken)
     {
-        var books = await bookRepository.ListVerifiedAsync(cancellationToken);
+        var books = await bookRepository.ListVerifiedAsync(pagination, cancellationToken);
 
-        return books
-            .OrderBy(book => book.Title)
-            .Select(BookMapper.ToListItem)
-            .ToList();
+        return new PagedResult<BookListItemDto>(
+            books.Items.Select(BookMapper.ToListItem).ToList(),
+            books.Page,
+            books.PageSize,
+            books.TotalCount);
     }
 
     public async Task<BookDetailsDto> GetBookByIdAsync(Guid id, CancellationToken cancellationToken)

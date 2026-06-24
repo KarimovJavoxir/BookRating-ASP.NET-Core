@@ -2,6 +2,7 @@ using BookRatingSystem.Api.Contracts;
 using BookRatingSystem.Application.Abstractions;
 using BookRatingSystem.Application.Books;
 using BookRatingSystem.Application.Books.Dtos;
+using BookRatingSystem.Application.Common;
 using BookRatingSystem.Domain.Entities;
 using BookRatingSystem.Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
@@ -18,10 +19,13 @@ public sealed class BooksController(
     IBookSearchService bookSearchService) : ControllerBase
 {
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<BookListItemDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<BookListItemDto>>> GetBooks(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(PagedResult<BookListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<BookListItemDto>>> GetBooks(
+        [FromQuery] int page = PaginationQuery.DefaultPage,
+        [FromQuery] int pageSize = PaginationQuery.DefaultPageSize,
+        CancellationToken cancellationToken = default)
     {
-        var books = await bookService.GetBooksAsync(cancellationToken);
+        var books = await bookService.GetBooksAsync(new PaginationQuery(page, pageSize), cancellationToken);
         return Ok(books);
     }
 

@@ -1,12 +1,14 @@
+using BookRatingSystem.Application.Common;
+
 namespace BookRatingSystem.Application.Admin;
 
 public interface IAdminReadService
 {
-    Task<IReadOnlyList<AdminBookDto>> GetBooksAsync(CancellationToken cancellationToken);
+    Task<PagedResult<AdminBookDto>> GetBooksAsync(PaginationQuery pagination, CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<AdminUserDto>> GetUsersAsync(CancellationToken cancellationToken);
+    Task<PagedResult<AdminUserDto>> GetUsersAsync(PaginationQuery pagination, CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<AdminBookRatingDto>> GetRatingsAsync(CancellationToken cancellationToken);
+    Task<PagedResult<AdminBookRatingDto>> GetRatingsAsync(PaginationQuery pagination, CancellationToken cancellationToken);
 
     Task<AdminDashboardDto> GetDashboardAsync(
         DateTimeOffset? from,

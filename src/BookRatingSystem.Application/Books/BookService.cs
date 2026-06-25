@@ -11,19 +11,45 @@ public sealed class BookService(
     IUnitOfWork unitOfWork,
     IClock clock,
     IBookIndexingService bookIndexingService,
+    IBackgroundTaskQueue<BookRatingProcessDto> backgroundTaskQueue,
     ILogger<BookService>? logger = null) : IBookService
 {
+    private const int MaxTopRatedBooksLimit = 50;
+
     public async Task<PagedResult<BookListItemDto>> GetBooksAsync(
         PaginationQuery pagination,
         CancellationToken cancellationToken)
     {
-        var books = await bookRepository.ListVerifiedAsync(pagination, cancellationToken);
+        return await GetBooksAsync(pagination, category: null, cancellationToken);
+    }
+
+    public async Task<PagedResult<BookListItemDto>> GetBooksAsync(
+        PaginationQuery pagination,
+        string? category,
+        CancellationToken cancellationToken)
+    {
+        var books = await bookRepository.ListVerifiedAsync(pagination, category, cancellationToken);
 
         return new PagedResult<BookListItemDto>(
             books.Items.Select(BookMapper.ToListItem).ToList(),
             books.Page,
             books.PageSize,
             books.TotalCount);
+    }
+
+    public async Task<IReadOnlyList<string>> GetBookCategoriesAsync(CancellationToken cancellationToken)
+    {
+        return await bookRepository.ListVerifiedCategoriesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<BookListItemDto>> GetTopRatedBooksAsync(
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var normalizedLimit = Math.Clamp(limit, 1, MaxTopRatedBooksLimit);
+        var books = await bookRepository.ListTopRatedVerifiedAsync(normalizedLimit, cancellationToken);
+
+        return books.Select(BookMapper.ToListItem).ToList();
     }
 
     public async Task<BookDetailsDto> GetBookByIdAsync(Guid id, CancellationToken cancellationToken)
@@ -111,9 +137,12 @@ public sealed class BookService(
             throw new BookNotFoundException(bookId);
         }
 
-        book.AddRating(command.UserId, command.Value, command.Comment, clock.UtcNow);
+        var rating = book.AddRating(command.UserId, command.Value, command.Comment, clock.UtcNow);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await TryIndexBookAsync(book.Id, "rating submission", cancellationToken);
+
+        if (rating.Comment != null)
+            await backgroundTaskQueue.EnqueueAsync(new BookRatingProcessDto(rating.Id, rating.Comment), cancellationToken);
 
         return BookMapper.ToDetails(book);
     }

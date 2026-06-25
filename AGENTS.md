@@ -295,7 +295,9 @@ Implemented endpoints:
 ```text
 GET    /api/books
 GET    /api/books/{id}
-GET    /api/books/search?q=...
+GET    /api/books/categories
+GET    /api/books/top-rated
+GET    /api/books/search?q=...&page=...&pageSize=...&category=...
 POST   /api/auth/register
 POST   /api/auth/login
 GET    /api/admin/books           AdminOnly policy required
@@ -378,6 +380,7 @@ Current implementation:
 * `MeilisearchBookSearchService` is defined in Infrastructure;
 * `MeilisearchBookIndexingService` is defined in Infrastructure;
 * `PostgresBookSearchService` is defined in Infrastructure;
+* search returns `PagedResult<BookSearchResultDto>` and accepts `page`, `pageSize`, and optional `category`;
 * Meilisearch search checks title, author, category, and description;
 * PostgreSQL fallback search uses EF Core query with `EF.Functions.ILike`;
 * search checks title, author, and category;

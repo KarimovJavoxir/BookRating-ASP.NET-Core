@@ -7,20 +7,23 @@ internal static class BookMapper
 {
     public static BookListItemDto ToListItem(Book book)
     {
+        var verifiedRatings = GetVerifiedRatings(book.Ratings);
+
         return new BookListItemDto(
             book.Id,
             book.Title,
             book.Author,
             book.Category,
             book.CoverImageUrl,
-            CalculateAverageRating(book.Ratings),
-            book.Ratings.Count,
+            CalculateAverageRating(verifiedRatings),
+            verifiedRatings.Count,
             book.Status.ToString());
     }
 
     public static BookDetailsDto ToDetails(Book book)
     {
-        var recentRatings = book.Ratings
+        var verifiedRatings = GetVerifiedRatings(book.Ratings);
+        var recentRatings = verifiedRatings
             .OrderByDescending(rating => rating.CreatedAt)
             .Take(5)
             .Select(ToRatingDto)
@@ -34,8 +37,8 @@ internal static class BookMapper
             book.Description,
             book.PublishedYear,
             book.CoverImageUrl,
-            CalculateAverageRating(book.Ratings),
-            book.Ratings.Count,
+            CalculateAverageRating(verifiedRatings),
+            verifiedRatings.Count,
             book.Status.ToString(),
             recentRatings);
     }
@@ -53,6 +56,13 @@ internal static class BookMapper
             rating.Status.ToString(),
             rating.BanReason,
             rating.CreatedAt);
+    }
+
+    private static IReadOnlyList<BookRating> GetVerifiedRatings(IReadOnlyCollection<BookRating> ratings)
+    {
+        return ratings
+            .Where(rating => rating.Status == BookRatingStatus.Verified)
+            .ToList();
     }
 
     private static decimal CalculateAverageRating(IReadOnlyCollection<BookRating> ratings)

@@ -1,3 +1,4 @@
+using BookRatingSystem.Application.Abstractions;
 using BookRatingSystem.Application.Books;
 using BookRatingSystem.Application.Auth;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,6 +11,7 @@ public static class DependencyInjection
     {
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IBookService, BookService>();
+        services.AddScoped<ICommentProcessingService, CommentProcessingService>();
 
         return services;
     }

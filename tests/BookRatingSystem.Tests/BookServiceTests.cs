@@ -4,6 +4,7 @@ using BookRatingSystem.Application.Books.Dtos;
 using BookRatingSystem.Application.Common;
 using BookRatingSystem.Domain.Entities;
 using BookRatingSystem.Domain.Exceptions;
+using System.Runtime.CompilerServices;
 using System.Reflection;
 
 namespace BookRatingSystem.Tests;
@@ -24,10 +25,32 @@ public class BookServiceTests
             null,
             createdAt);
 
-        book.AddRating(Guid.Parse("10000000-0000-0000-0000-000000000001"), 5, "Juda foydali", createdAt.AddMinutes(1));
-        book.AddRating(Guid.Parse("10000000-0000-0000-0000-000000000002"), 3, null, createdAt.AddMinutes(2));
+        book.Ratings.Add(BookRating.Create(
+            Guid.Parse("20000000-0000-0000-0000-000000000001"),
+            book.Id,
+            Guid.Parse("10000000-0000-0000-0000-000000000001"),
+            5,
+            "Juda foydali",
+            createdAt.AddMinutes(1),
+            BookRatingStatus.Verified));
+        book.Ratings.Add(BookRating.Create(
+            Guid.Parse("20000000-0000-0000-0000-000000000002"),
+            book.Id,
+            Guid.Parse("10000000-0000-0000-0000-000000000002"),
+            3,
+            null,
+            createdAt.AddMinutes(2),
+            BookRatingStatus.Verified));
+        book.Ratings.Add(BookRating.Create(
+            Guid.Parse("20000000-0000-0000-0000-000000000003"),
+            book.Id,
+            Guid.Parse("10000000-0000-0000-0000-000000000003"),
+            1,
+            "Moderatsiyadagi izoh",
+            createdAt.AddMinutes(3),
+            BookRatingStatus.New));
 
-        var service = new BookService(
+        var service = CreateBookService(
             new FakeBookRepository(book),
             new FakeUnitOfWork(),
             new FixedClock(createdAt),
@@ -75,7 +98,7 @@ public class BookServiceTests
             null,
             createdAt,
             status: BookStatus.Banned);
-        var service = new BookService(
+        var service = CreateBookService(
             new FakeBookRepository(verifiedBook, unverifiedBook, bannedBook),
             new FakeUnitOfWork(),
             new FixedClock(createdAt),
@@ -104,7 +127,7 @@ public class BookServiceTests
                 createdAt,
                 status: BookStatus.Verified))
             .ToArray();
-        var service = new BookService(
+        var service = CreateBookService(
             new FakeBookRepository(books),
             new FakeUnitOfWork(),
             new FixedClock(createdAt),
@@ -117,6 +140,174 @@ public class BookServiceTests
         Assert.Equal(5, result.TotalCount);
         Assert.Equal(3, result.TotalPages);
         Assert.Equal(["Kitob 3", "Kitob 4"], result.Items.Select(book => book.Title));
+    }
+
+    [Fact]
+    public async Task GetBooksAsync_filters_public_catalog_by_category()
+    {
+        var createdAt = new DateTimeOffset(2026, 6, 24, 9, 30, 0, TimeSpan.Zero);
+        var programmingBook = Book.Create(
+            Guid.Parse("12121212-1212-1212-1212-121212121212"),
+            "Dasturlash kitobi",
+            "A. Muallif",
+            "Dasturlash",
+            null,
+            2026,
+            null,
+            createdAt,
+            status: BookStatus.Verified);
+        var networkBook = Book.Create(
+            Guid.Parse("13131313-1313-1313-1313-131313131313"),
+            "Tarmoq kitobi",
+            "B. Muallif",
+            "Tarmoq",
+            null,
+            2026,
+            null,
+            createdAt,
+            status: BookStatus.Verified);
+        var service = CreateBookService(
+            new FakeBookRepository(programmingBook, networkBook),
+            new FakeUnitOfWork(),
+            new FixedClock(createdAt),
+            new FakeBookIndexingService());
+
+        var result = await service.GetBooksAsync(new PaginationQuery(page: 1, pageSize: 10), "Tarmoq", CancellationToken.None);
+
+        var item = Assert.Single(result.Items);
+        Assert.Equal(networkBook.Id, item.Id);
+        Assert.Equal(1, result.TotalCount);
+    }
+
+    [Fact]
+    public async Task GetBookCategoriesAsync_returns_distinct_verified_categories()
+    {
+        var createdAt = new DateTimeOffset(2026, 6, 24, 10, 0, 0, TimeSpan.Zero);
+        var verifiedFirst = Book.Create(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            "Birinchi kitob",
+            "A. Muallif",
+            "Dasturlash",
+            null,
+            2026,
+            null,
+            createdAt,
+            status: BookStatus.Verified);
+        var verifiedSecond = Book.Create(
+            Guid.Parse("22222222-2222-2222-2222-222222222222"),
+            "Ikkinchi kitob",
+            "B. Muallif",
+            "Tarmoq",
+            null,
+            2026,
+            null,
+            createdAt,
+            status: BookStatus.Verified);
+        var verifiedDuplicate = Book.Create(
+            Guid.Parse("33333333-3333-3333-3333-333333333333"),
+            "Uchinchi kitob",
+            "C. Muallif",
+            "Dasturlash",
+            null,
+            2026,
+            null,
+            createdAt,
+            status: BookStatus.Verified);
+        var unverified = Book.Create(
+            Guid.Parse("44444444-4444-4444-4444-444444444444"),
+            "Yangi kitob",
+            "D. Muallif",
+            "Yashirin",
+            null,
+            2026,
+            null,
+            createdAt,
+            status: BookStatus.New);
+        var service = CreateBookService(
+            new FakeBookRepository(verifiedFirst, verifiedSecond, verifiedDuplicate, unverified),
+            new FakeUnitOfWork(),
+            new FixedClock(createdAt),
+            new FakeBookIndexingService());
+
+        var categories = await service.GetBookCategoriesAsync(CancellationToken.None);
+
+        Assert.Equal(["Dasturlash", "Tarmoq"], categories);
+    }
+
+    [Fact]
+    public async Task GetTopRatedBooksAsync_returns_limited_verified_books_by_rating()
+    {
+        var createdAt = new DateTimeOffset(2026, 6, 24, 10, 30, 0, TimeSpan.Zero);
+        var highestRated = Book.Create(
+            Guid.Parse("55555555-5555-5555-5555-555555555555"),
+            "Eng yuqori reyting",
+            "A. Muallif",
+            "Dasturlash",
+            null,
+            2026,
+            null,
+            createdAt,
+            status: BookStatus.Verified);
+        highestRated.Ratings.Add(BookRating.Create(
+            Guid.Parse("20000000-0000-0000-0000-000000000021"),
+            highestRated.Id,
+            Guid.Parse("10000000-0000-0000-0000-000000000021"),
+            5,
+            null,
+            createdAt.AddMinutes(1),
+            BookRatingStatus.Verified));
+        highestRated.Ratings.Add(BookRating.Create(
+            Guid.Parse("20000000-0000-0000-0000-000000000022"),
+            highestRated.Id,
+            Guid.Parse("10000000-0000-0000-0000-000000000022"),
+            5,
+            null,
+            createdAt.AddMinutes(2),
+            BookRatingStatus.Verified));
+
+        var lowerRated = Book.Create(
+            Guid.Parse("66666666-6666-6666-6666-666666666666"),
+            "Past reyting",
+            "B. Muallif",
+            "Tarmoq",
+            null,
+            2026,
+            null,
+            createdAt,
+            status: BookStatus.Verified);
+        lowerRated.Ratings.Add(BookRating.Create(
+            Guid.Parse("20000000-0000-0000-0000-000000000023"),
+            lowerRated.Id,
+            Guid.Parse("10000000-0000-0000-0000-000000000023"),
+            3,
+            null,
+            createdAt.AddMinutes(3),
+            BookRatingStatus.Verified));
+
+        var unverified = Book.Create(
+            Guid.Parse("77777777-7777-7777-7777-777777777777"),
+            "Yashirin yuqori reyting",
+            "C. Muallif",
+            "Yashirin",
+            null,
+            2026,
+            null,
+            createdAt,
+            status: BookStatus.New);
+        unverified.AddRating(Guid.Parse("10000000-0000-0000-0000-000000000024"), 5, null, createdAt.AddMinutes(4));
+
+        var service = CreateBookService(
+            new FakeBookRepository(lowerRated, highestRated, unverified),
+            new FakeUnitOfWork(),
+            new FixedClock(createdAt),
+            new FakeBookIndexingService());
+
+        var books = await service.GetTopRatedBooksAsync(limit: 1, CancellationToken.None);
+
+        var item = Assert.Single(books);
+        Assert.Equal(highestRated.Id, item.Id);
+        Assert.Equal(5.0m, item.AverageRating);
+        Assert.Equal(2, item.RatingsCount);
     }
 
     [Fact]
@@ -133,7 +324,7 @@ public class BookServiceTests
             null,
             createdAt,
             status: BookStatus.New);
-        var service = new BookService(
+        var service = CreateBookService(
             new FakeBookRepository(unverifiedBook),
             new FakeUnitOfWork(),
             new FixedClock(createdAt),
@@ -144,7 +335,7 @@ public class BookServiceTests
     }
 
     [Fact]
-    public async Task SubmitRatingAsync_adds_rating_and_returns_updated_details()
+    public async Task SubmitRatingAsync_saves_new_rating_without_publishing_it()
     {
         var now = new DateTimeOffset(2026, 6, 22, 11, 0, 0, TimeSpan.Zero);
         var userId = Guid.Parse("10000000-0000-0000-0000-000000000001");
@@ -159,7 +350,7 @@ public class BookServiceTests
             now.AddDays(-1));
         var unitOfWork = new FakeUnitOfWork();
         var indexingService = new FakeBookIndexingService();
-        var service = new BookService(
+        var service = CreateBookService(
             new FakeBookRepository(book),
             unitOfWork,
             new FixedClock(now),
@@ -170,22 +361,23 @@ public class BookServiceTests
             new SubmitBookRatingCommand(userId, 5, "Tushunarli yozilgan"),
             CancellationToken.None);
 
-        Assert.Equal(5.0m, result.AverageRating);
-        Assert.Equal(1, result.RatingsCount);
+        Assert.Equal(0m, result.AverageRating);
+        Assert.Equal(0, result.RatingsCount);
         Assert.Equal(1, unitOfWork.SaveChangesCalls);
         Assert.Equal([book.Id], indexingService.IndexedBookIds);
+        Assert.Empty(result.RecentRatings);
 
-        var rating = Assert.Single(result.RecentRatings);
+        var rating = Assert.Single(book.Ratings);
         Assert.Equal(userId, rating.UserId);
         Assert.Equal(5, rating.Value);
         Assert.Equal("Tushunarli yozilgan", rating.Comment);
-        Assert.Equal(BookRatingStatus.New.ToString(), rating.Status);
+        Assert.Equal(BookRatingStatus.New, rating.Status);
         Assert.Null(rating.BanReason);
         Assert.Equal(now, rating.CreatedAt);
     }
 
     [Fact]
-    public async Task GetBookByIdAsync_includes_rating_status_and_ban_reason()
+    public async Task GetBookByIdAsync_returns_only_verified_recent_ratings()
     {
         var now = new DateTimeOffset(2026, 6, 23, 15, 30, 0, TimeSpan.Zero);
         var userId = Guid.Parse("10000000-0000-0000-0000-000000000012");
@@ -199,6 +391,14 @@ public class BookServiceTests
             null,
             now);
         book.Ratings.Add(BookRating.Create(
+            Guid.Parse("77777777-7777-7777-7777-777777777771"),
+            book.Id,
+            userId,
+            5,
+            "Verified review",
+            now.AddMinutes(3),
+            BookRatingStatus.Verified));
+        book.Ratings.Add(BookRating.Create(
             Guid.Parse("77777777-7777-7777-7777-777777777777"),
             book.Id,
             userId,
@@ -207,8 +407,16 @@ public class BookServiceTests
             now.AddMinutes(1),
             BookRatingStatus.Banned,
             "  Notoʻgʻri izoh  "));
+        book.Ratings.Add(BookRating.Create(
+            Guid.Parse("77777777-7777-7777-7777-777777777772"),
+            book.Id,
+            userId,
+            1,
+            "New review",
+            now.AddMinutes(2),
+            BookRatingStatus.New));
 
-        var service = new BookService(
+        var service = CreateBookService(
             new FakeBookRepository(book),
             new FakeUnitOfWork(),
             new FixedClock(now),
@@ -217,8 +425,11 @@ public class BookServiceTests
         var result = await service.GetBookByIdAsync(book.Id, CancellationToken.None);
 
         var recentRating = Assert.Single(result.RecentRatings);
-        Assert.Equal(BookRatingStatus.Banned.ToString(), recentRating.Status);
-        Assert.Equal("Notoʻgʻri izoh", recentRating.BanReason);
+        Assert.Equal(BookRatingStatus.Verified.ToString(), recentRating.Status);
+        Assert.Equal("Verified review", recentRating.Comment);
+        Assert.Null(recentRating.BanReason);
+        Assert.Equal(5.0m, result.AverageRating);
+        Assert.Equal(1, result.RatingsCount);
     }
 
     [Fact]
@@ -235,7 +446,15 @@ public class BookServiceTests
             2026,
             null,
             now);
-        var rating = book.AddRating(userId, 4, "Yaxshi", now.AddMinutes(1));
+        var rating = BookRating.Create(
+            Guid.Parse("88888888-8888-8888-8888-888888888888"),
+            book.Id,
+            userId,
+            4,
+            "Yaxshi",
+            now.AddMinutes(1),
+            BookRatingStatus.Verified);
+        book.Ratings.Add(rating);
         var user = User.Create(
             userId,
             "user11",
@@ -246,7 +465,7 @@ public class BookServiceTests
             createdAt: now.AddDays(-1));
         SetRatingUser(rating, user);
 
-        var service = new BookService(
+        var service = CreateBookService(
             new FakeBookRepository(book),
             new FakeUnitOfWork(),
             new FixedClock(now),
@@ -274,7 +493,7 @@ public class BookServiceTests
             now);
         var unitOfWork = new FakeUnitOfWork();
         var indexingService = new FakeBookIndexingService();
-        var service = new BookService(
+        var service = CreateBookService(
             new FakeBookRepository(book),
             unitOfWork,
             new FixedClock(now),
@@ -300,7 +519,7 @@ public class BookServiceTests
         var repository = new FakeBookRepository();
         var unitOfWork = new FakeUnitOfWork();
         var indexingService = new FakeBookIndexingService();
-        var service = new BookService(
+        var service = CreateBookService(
             repository,
             unitOfWork,
             new FixedClock(now),
@@ -348,12 +567,26 @@ public class BookServiceTests
             2020,
             null,
             createdAt);
-        book.AddRating(Guid.Parse("10000000-0000-0000-0000-000000000003"), 5, null, createdAt.AddMinutes(1));
-        book.AddRating(Guid.Parse("10000000-0000-0000-0000-000000000004"), 3, null, createdAt.AddMinutes(2));
+        book.Ratings.Add(BookRating.Create(
+            Guid.Parse("20000000-0000-0000-0000-000000000031"),
+            book.Id,
+            Guid.Parse("10000000-0000-0000-0000-000000000003"),
+            5,
+            null,
+            createdAt.AddMinutes(1),
+            BookRatingStatus.Verified));
+        book.Ratings.Add(BookRating.Create(
+            Guid.Parse("20000000-0000-0000-0000-000000000032"),
+            book.Id,
+            Guid.Parse("10000000-0000-0000-0000-000000000004"),
+            3,
+            null,
+            createdAt.AddMinutes(2),
+            BookRatingStatus.Verified));
 
         var unitOfWork = new FakeUnitOfWork();
         var indexingService = new FakeBookIndexingService();
-        var service = new BookService(
+        var service = CreateBookService(
             new FakeBookRepository(book),
             unitOfWork,
             new FixedClock(now),
@@ -400,7 +633,7 @@ public class BookServiceTests
         var repository = new FakeBookRepository(book);
         var unitOfWork = new FakeUnitOfWork();
         var indexingService = new FakeBookIndexingService();
-        var service = new BookService(
+        var service = CreateBookService(
             repository,
             unitOfWork,
             new FixedClock(now),
@@ -420,7 +653,7 @@ public class BookServiceTests
         var missingBookId = Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff");
         var unitOfWork = new FakeUnitOfWork();
         var indexingService = new FakeBookIndexingService();
-        var service = new BookService(
+        var service = CreateBookService(
             new FakeBookRepository(),
             unitOfWork,
             new FixedClock(now),
@@ -444,7 +677,7 @@ public class BookServiceTests
         var missingBookId = Guid.Parse("abababab-abab-abab-abab-abababababab");
         var unitOfWork = new FakeUnitOfWork();
         var indexingService = new FakeBookIndexingService();
-        var service = new BookService(
+        var service = CreateBookService(
             new FakeBookRepository(),
             unitOfWork,
             new FixedClock(now),
@@ -465,7 +698,7 @@ public class BookServiceTests
         var repository = new FakeBookRepository();
         var unitOfWork = new FakeUnitOfWork();
         var indexingService = new FakeBookIndexingService { ThrowOnIndex = true };
-        var service = new BookService(
+        var service = CreateBookService(
             repository,
             unitOfWork,
             new FixedClock(now),
@@ -480,6 +713,20 @@ public class BookServiceTests
         Assert.Equal([result.Id], indexingService.IndexedBookIds);
     }
 
+    private static BookService CreateBookService(
+        IBookRepository bookRepository,
+        IUnitOfWork unitOfWork,
+        IClock clock,
+        IBookIndexingService indexingService)
+    {
+        return new BookService(
+            bookRepository,
+            unitOfWork,
+            clock,
+            indexingService,
+            new FakeBackgroundTaskQueue());
+    }
+
     private sealed class FakeBookRepository(params Book[] books) : IBookRepository
     {
         private readonly Dictionary<Guid, Book> _books = books.ToDictionary(book => book.Id);
@@ -491,11 +738,49 @@ public class BookServiceTests
 
         public Task<PagedResult<Book>> ListVerifiedAsync(PaginationQuery pagination, CancellationToken cancellationToken)
         {
-            return Task.FromResult(ToPagedResult(
-                _books.Values
-                    .Where(book => book.Status == BookStatus.Verified)
-                    .OrderBy(book => book.Title),
-                pagination));
+            return ListVerifiedAsync(pagination, category: null, cancellationToken);
+        }
+
+        public Task<PagedResult<Book>> ListVerifiedAsync(
+            PaginationQuery pagination,
+            string? category,
+            CancellationToken cancellationToken)
+        {
+            var normalizedCategory = category?.Trim();
+            var query = _books.Values.Where(book => book.Status == BookStatus.Verified);
+
+            if (!string.IsNullOrWhiteSpace(normalizedCategory))
+            {
+                query = query.Where(book => book.Category == normalizedCategory);
+            }
+
+            return Task.FromResult(ToPagedResult(query.OrderBy(book => book.Title), pagination));
+        }
+
+        public Task<IReadOnlyList<string>> ListVerifiedCategoriesAsync(CancellationToken cancellationToken)
+        {
+            IReadOnlyList<string> categories = _books.Values
+                .Where(book => book.Status == BookStatus.Verified)
+                .Select(book => book.Category)
+                .OfType<string>()
+                .Distinct()
+                .OrderBy(category => category)
+                .ToList();
+
+            return Task.FromResult(categories);
+        }
+
+        public Task<IReadOnlyList<Book>> ListTopRatedVerifiedAsync(int limit, CancellationToken cancellationToken)
+        {
+            IReadOnlyList<Book> books = _books.Values
+                .Where(book => book.Status == BookStatus.Verified)
+                .OrderByDescending(GetAverageRating)
+                .ThenByDescending(book => book.Ratings.Count(rating => rating.Status == BookRatingStatus.Verified))
+                .ThenBy(book => book.Title)
+                .Take(limit)
+                .ToList();
+
+            return Task.FromResult(books);
         }
 
         public Task<Book?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
@@ -525,6 +810,17 @@ public class BookServiceTests
                 pagination.Page,
                 pagination.PageSize,
                 items.Count);
+        }
+
+        private static decimal GetAverageRating(Book book)
+        {
+            var verifiedRatings = book.Ratings
+                .Where(rating => rating.Status == BookRatingStatus.Verified)
+                .ToList();
+
+            return verifiedRatings.Count == 0
+                ? 0m
+                : verifiedRatings.Average(rating => (decimal)rating.Value);
         }
     }
 
@@ -577,6 +873,21 @@ public class BookServiceTests
         {
             DeletedBookIds.Add(bookId);
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeBackgroundTaskQueue : IBackgroundTaskQueue<BookRatingProcessDto>
+    {
+        public ValueTask EnqueueAsync(BookRatingProcessDto item, CancellationToken cancellationToken = default)
+        {
+            return ValueTask.CompletedTask;
+        }
+
+        public async IAsyncEnumerable<BookRatingProcessDto> DequeueAllAsync(
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+            yield break;
         }
     }
 

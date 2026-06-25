@@ -33,17 +33,8 @@ public sealed class BookRating
             throw new InvalidBookRatingException($"Rating value must be between {MinValue} and {MaxValue}.");
         }
 
-        var normalizedComment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
-        if (normalizedComment?.Length > MaxCommentLength)
-        {
-            throw new InvalidBookRatingException($"Rating comment cannot exceed {MaxCommentLength} characters.");
-        }
-
-        var normalizedBanReason = string.IsNullOrWhiteSpace(banReason) ? null : banReason.Trim();
-        if (normalizedBanReason?.Length > MaxBanReasonLength)
-        {
-            throw new InvalidBookRatingException($"Rating ban reason cannot exceed {MaxBanReasonLength} characters.");
-        }
+        var normalizedComment = NormalizeOptional(comment, MaxCommentLength, "comment");
+        var normalizedBanReason = NormalizeOptional(banReason, MaxBanReasonLength, "ban reason");
 
         Id = id;
         BookId = bookId;
@@ -77,5 +68,45 @@ public sealed class BookRating
         string? banReason = null)
     {
         return new BookRating(id, bookId, userId, value, comment, createdAt, status, banReason);
+    }
+
+    public void MarkVerified()
+    {
+        Status = BookRatingStatus.Verified;
+        BanReason = null;
+    }
+
+    public void MarkBanned(string banReason)
+    {
+        var normalizedBanReason = NormalizeOptional(banReason, MaxBanReasonLength, "ban reason");
+        if (normalizedBanReason is null)
+        {
+            throw new InvalidBookRatingException("Rating ban reason is required.");
+        }
+
+        Status = BookRatingStatus.Banned;
+        BanReason = normalizedBanReason;
+    }
+
+    public void MarkNeedsHumanReview(string? reason)
+    {
+        Status = BookRatingStatus.NeedsHumanReview;
+        BanReason = NormalizeOptional(reason, MaxBanReasonLength, "ban reason");
+    }
+
+    private static string? NormalizeOptional(string? value, int maxLength, string displayName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var normalized = value.Trim();
+        if (normalized.Length > maxLength)
+        {
+            throw new InvalidBookRatingException($"Rating {displayName} cannot exceed {maxLength} characters.");
+        }
+
+        return normalized;
     }
 }

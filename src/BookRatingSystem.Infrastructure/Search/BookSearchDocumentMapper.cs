@@ -7,7 +7,10 @@ internal static class BookSearchDocumentMapper
 {
     public static BookSearchDocument ToDocument(Book book)
     {
-        var averageRating = CalculateAverageRating(book.Ratings);
+        var verifiedRatings = book.Ratings
+            .Where(rating => rating.Status == BookRatingStatus.Verified)
+            .ToList();
+        var averageRating = CalculateAverageRating(verifiedRatings);
 
         return new BookSearchDocument
         {
@@ -19,7 +22,7 @@ internal static class BookSearchDocumentMapper
             PublishedYear = book.PublishedYear,
             CoverImageUrl = book.CoverImageUrl,
             AverageRating = decimal.ToDouble(averageRating),
-            RatingsCount = book.Ratings.Count,
+            RatingsCount = verifiedRatings.Count,
             Status = book.Status.ToString()
         };
     }

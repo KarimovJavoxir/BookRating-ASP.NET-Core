@@ -22,13 +22,60 @@ internal sealed class EfBookRepository(BookRatingDbContext dbContext) : IBookRep
         PaginationQuery pagination,
         CancellationToken cancellationToken)
     {
+        return await ListVerifiedAsync(pagination, category: null, cancellationToken);
+    }
+
+    public async Task<PagedResult<Book>> ListVerifiedAsync(
+        PaginationQuery pagination,
+        string? category,
+        CancellationToken cancellationToken)
+    {
         var query = dbContext.Books
             .AsNoTracking()
-            .Where(book => book.Status == BookStatus.Verified)
+            .Where(book => book.Status == BookStatus.Verified);
+
+        var normalizedCategory = category?.Trim();
+        if (!string.IsNullOrWhiteSpace(normalizedCategory))
+        {
+            query = query.Where(book => book.Category == normalizedCategory);
+        }
+
+        var orderedQuery = query
             .Include(book => book.Ratings)
             .OrderBy(book => book.Title);
 
-        return await ToPagedResultAsync(query, pagination, cancellationToken);
+        return await ToPagedResultAsync(orderedQuery, pagination, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<string>> ListVerifiedCategoriesAsync(CancellationToken cancellationToken)
+    {
+        return await dbContext.Books
+            .AsNoTracking()
+            .Where(book => book.Status == BookStatus.Verified)
+            .Where(book => book.Category != null)
+            .Select(book => book.Category!)
+            .Distinct()
+            .OrderBy(category => category)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Book>> ListTopRatedVerifiedAsync(
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.Books
+            .AsNoTracking()
+            .Where(book => book.Status == BookStatus.Verified)
+            .Include(book => book.Ratings)
+            .OrderByDescending(book => book.Ratings.Count(rating => rating.Status == BookRatingStatus.Verified) == 0
+                ? 0m
+                : book.Ratings
+                    .Where(rating => rating.Status == BookRatingStatus.Verified)
+                    .Average(rating => (decimal)rating.Value))
+            .ThenByDescending(book => book.Ratings.Count(rating => rating.Status == BookRatingStatus.Verified))
+            .ThenBy(book => book.Title)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
     }
 
     public Task<Book?> GetByIdAsync(Guid id, CancellationToken cancellationToken)

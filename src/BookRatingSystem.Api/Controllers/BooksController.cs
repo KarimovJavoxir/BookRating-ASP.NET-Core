@@ -23,9 +23,28 @@ public sealed class BooksController(
     public async Task<ActionResult<PagedResult<BookListItemDto>>> GetBooks(
         [FromQuery] int page = PaginationQuery.DefaultPage,
         [FromQuery] int pageSize = PaginationQuery.DefaultPageSize,
+        [FromQuery] string? category = null,
         CancellationToken cancellationToken = default)
     {
-        var books = await bookService.GetBooksAsync(new PaginationQuery(page, pageSize), cancellationToken);
+        var books = await bookService.GetBooksAsync(new PaginationQuery(page, pageSize), category, cancellationToken);
+        return Ok(books);
+    }
+
+    [HttpGet("categories")]
+    [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<string>>> GetBookCategories(CancellationToken cancellationToken)
+    {
+        var categories = await bookService.GetBookCategoriesAsync(cancellationToken);
+        return Ok(categories);
+    }
+
+    [HttpGet("top-rated")]
+    [ProducesResponseType(typeof(IReadOnlyList<BookListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<BookListItemDto>>> GetTopRatedBooks(
+        [FromQuery] int limit = 3,
+        CancellationToken cancellationToken = default)
+    {
+        var books = await bookService.GetTopRatedBooksAsync(limit, cancellationToken);
         return Ok(books);
     }
 
@@ -128,11 +147,14 @@ public sealed class BooksController(
     }
 
     [HttpGet("search")]
-    [ProducesResponseType(typeof(IReadOnlyList<BookSearchResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<BookSearchResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IReadOnlyList<BookSearchResultDto>>> SearchBooks(
+    public async Task<ActionResult<PagedResult<BookSearchResultDto>>> SearchBooks(
         [FromQuery] string? q,
-        CancellationToken cancellationToken)
+        [FromQuery] int page = PaginationQuery.DefaultPage,
+        [FromQuery] int pageSize = PaginationQuery.DefaultPageSize,
+        [FromQuery] string? category = null,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(q))
         {
@@ -144,7 +166,11 @@ public sealed class BooksController(
 
         try
         {
-            var books = await bookSearchService.SearchAsync(q, cancellationToken);
+            var books = await bookSearchService.SearchAsync(
+                q.Trim(),
+                new PaginationQuery(page, pageSize),
+                category,
+                cancellationToken);
             return Ok(books);
         }
         catch (BookSearchUnavailableException exception)

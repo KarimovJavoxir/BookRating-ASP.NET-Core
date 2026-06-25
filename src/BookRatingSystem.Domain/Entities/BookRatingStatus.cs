@@ -4,5 +4,6 @@ public enum BookRatingStatus
 {
     New = 0,
     Verified = 1,
-    Banned = 2
+    Banned = 2,
+    NeedsHumanReview = 3
 }

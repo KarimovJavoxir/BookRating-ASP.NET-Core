@@ -1,6 +1,7 @@
 using BookRatingSystem.Application.Abstractions;
 using BookRatingSystem.Application.Books;
 using BookRatingSystem.Application.Books.Dtos;
+using BookRatingSystem.Application.Common;
 using Meilisearch;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -13,14 +14,16 @@ internal sealed class MeilisearchBookSearchService(
     PostgresBookSearchService postgresFallback,
     ILogger<MeilisearchBookSearchService> logger) : IBookSearchService
 {
-    public async Task<IReadOnlyList<BookSearchResultDto>> SearchAsync(
+    public async Task<PagedResult<BookSearchResultDto>> SearchAsync(
         string query,
+        PaginationQuery pagination,
+        string? category,
         CancellationToken cancellationToken)
     {
         var trimmedQuery = query.Trim();
         if (trimmedQuery.Length == 0)
         {
-            return [];
+            return new PagedResult<BookSearchResultDto>([], pagination.Page, pagination.PageSize, 0);
         }
 
         try
@@ -30,14 +33,21 @@ internal sealed class MeilisearchBookSearchService(
                 trimmedQuery,
                 new SearchQuery
                 {
-                    Limit = 50,
-                    Filter = "status = Verified"
+                    HitsPerPage = pagination.PageSize,
+                    Page = pagination.Page,
+                    Filter = BuildFilter(category)
                 },
                 cancellationToken);
 
-            return result.Hits
+            var items = result.Hits
                 .Select(BookSearchDocumentMapper.ToSearchResult)
                 .ToList();
+
+            return new PagedResult<BookSearchResultDto>(
+                items,
+                pagination.Page,
+                pagination.PageSize,
+                GetTotalHits(result));
         }
         catch (Exception exception) when (IsMeilisearchFailure(exception, cancellationToken))
         {
@@ -51,8 +61,34 @@ internal sealed class MeilisearchBookSearchService(
                 "Meilisearch search failed. Falling back to PostgreSQL search for query {Query}.",
                 trimmedQuery);
 
-            return await postgresFallback.SearchAsync(trimmedQuery, cancellationToken);
+            return await postgresFallback.SearchAsync(trimmedQuery, pagination, category, cancellationToken);
         }
+    }
+
+    private static string BuildFilter(string? category)
+    {
+        var normalizedCategory = category?.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedCategory))
+        {
+            return "status = Verified";
+        }
+
+        return $"status = Verified AND category = \"{EscapeFilterValue(normalizedCategory)}\"";
+    }
+
+    private static string EscapeFilterValue(string value)
+    {
+        return value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
+    }
+
+    private static int GetTotalHits(ISearchable<BookSearchDocument> result)
+    {
+        return result switch
+        {
+            PaginatedSearchResult<BookSearchDocument> paginatedResult => paginatedResult.TotalHits,
+            SearchResult<BookSearchDocument> searchResult => searchResult.EstimatedTotalHits,
+            _ => result.Hits.Count
+        };
     }
 
     private static bool IsMeilisearchFailure(Exception exception, CancellationToken cancellationToken)

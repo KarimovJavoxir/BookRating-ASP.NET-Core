@@ -2,15 +2,18 @@ using BookRatingSystem.Application.Abstractions;
 using BookRatingSystem.Application.Admin;
 using BookRatingSystem.Infrastructure.Admin;
 using BookRatingSystem.Infrastructure.Persistence;
+using BookRatingSystem.Infrastructure.Queue;
 using BookRatingSystem.Infrastructure.Repositories;
 using BookRatingSystem.Infrastructure.Search;
 using BookRatingSystem.Infrastructure.Security;
 using BookRatingSystem.Infrastructure.Time;
 using Meilisearch;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using OpenAI.Chat;
 
 namespace BookRatingSystem.Infrastructure;
 
@@ -58,6 +61,7 @@ public static class DependencyInjection
             return new MeilisearchClient(options.Url, options.ApiKey);
         });
         services.AddScoped<IBookRepository, EfBookRepository>();
+        services.AddScoped<IBookRatingRepository, EfBookRatingRepository>();
         services.AddScoped<IUserRepository, EfUserRepository>();
         services.AddScoped<IAdminReadService, EfAdminReadService>();
         services.AddScoped<IUnitOfWork>(provider => provider.GetRequiredService<BookRatingDbContext>());
@@ -65,6 +69,31 @@ public static class DependencyInjection
         services.AddScoped<PostgresBookSearchService>();
         services.AddScoped<IBookSearchService, MeilisearchBookSearchService>();
         services.AddScoped<IBookIndexingService, MeilisearchBookIndexingService>();
+        services.Configure<OpenAiOptions>(options =>
+        {
+            var section = configuration.GetSection(OpenAiOptions.SectionName);
+
+            options.ApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")
+                ?? section["ApiKey"]
+                ?? string.Empty;
+            options.Model = section["Model"] ?? options.Model;
+        });
+        services.AddSingleton<IChatClient>(provider =>
+        {
+            var options = provider.GetRequiredService<IOptions<OpenAiOptions>>().Value;
+            if (string.IsNullOrWhiteSpace(options.ApiKey))
+            {
+                throw new InvalidOperationException("OpenAI API key is not configured.");
+            }
+
+            if (string.IsNullOrWhiteSpace(options.Model))
+            {
+                throw new InvalidOperationException("OpenAI model is not configured.");
+            }
+
+            return new ChatClient(options.Model, options.ApiKey).AsIChatClient();
+        });
+        services.AddScoped<ICommentVerificationAiService, CommentVerificationAiService>();
         services.AddSingleton<IClock, SystemClock>();
 
         return services;

@@ -7,6 +7,9 @@ using BookRatingSystem.Application.Abstractions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using BookRatingSystem.Api.Infrastructure;
+using BookRatingSystem.Application.Books.Dtos;
+using BookRatingSystem.Infrastructure.Queue;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,6 +65,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddSingleton<IBackgroundTaskQueue<BookRatingProcessDto>, BackgroundTaskQueue<BookRatingProcessDto>>();
+builder.Services.AddHostedService<CommentProcessingWorker>();
 
 var app = builder.Build();
 

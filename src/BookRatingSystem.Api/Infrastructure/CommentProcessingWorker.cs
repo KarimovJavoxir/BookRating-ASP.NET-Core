@@ -1,6 +1,5 @@
 using BookRatingSystem.Application.Abstractions;
 using BookRatingSystem.Application.Books.Dtos;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace BookRatingSystem.Api.Infrastructure;
 

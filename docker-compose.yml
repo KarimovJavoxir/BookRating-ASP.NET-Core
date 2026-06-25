@@ -1,33 +1,6 @@
-services:
-  postgres:
-    image: postgres:17-alpine
-    container_name: bookrating-postgres
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-book_rating_db}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-book_rating_db}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  meilisearch:
-    image: getmeili/meilisearch:v1.37
-    container_name: bookrating-meilisearch
-    environment:
-      MEILI_ENV: development
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-dev-master-key-change-me-123456}
-      MEILI_NO_ANALYTICS: "true"
-    ports:
-      - "7700:7700"
-    volumes:
-      - meilisearch-data:/meili_data
-
-volumes:
-  postgres-data:
-  meilisearch-data:
+﻿services:
+  backend:
+    image: edwardkenway/book-rating-asp.net-core
+    build:
+      context: .
+      dockerfile: Dockerfile

@@ -2,6 +2,7 @@ using BookRatingSystem.Application.Abstractions;
 using BookRatingSystem.Application.Books.Dtos;
 using BookRatingSystem.Application.Common;
 using BookRatingSystem.Domain.Entities;
+using BookRatingSystem.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
 
 namespace BookRatingSystem.Application.Books;
@@ -135,6 +136,11 @@ public sealed class BookService(
         if (book is null)
         {
             throw new BookNotFoundException(bookId);
+        }
+
+        if (book.Ratings.Any(rating => rating.UserId == command.UserId))
+        {
+            throw new InvalidBookRatingException("Siz bu kitobga allaqachon baho qoldirgansiz.");
         }
 
         var rating = book.AddRating(command.UserId, command.Value, command.Comment, clock.UtcNow);

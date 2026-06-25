@@ -1,9 +1,13 @@
+using BookRatingSystem.Api.Contracts;
 using BookRatingSystem.Api.Controllers;
 using BookRatingSystem.Application.Abstractions;
 using BookRatingSystem.Application.Books;
 using BookRatingSystem.Application.Books.Dtos;
 using BookRatingSystem.Application.Common;
+using BookRatingSystem.Domain.Exceptions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace BookRatingSystem.Tests;
 
@@ -42,6 +46,41 @@ public sealed class BooksControllerTests
         Assert.Equal("Xavfsizlik", searchService.LastCategory);
     }
 
+    [Fact]
+    public async Task SubmitRating_returns_clear_error_when_user_already_rated_book()
+    {
+        var bookId = Guid.Parse("91919191-9191-9191-9191-919191919191");
+        var userId = Guid.Parse("10000000-0000-0000-0000-000000000091");
+        var bookService = new FakeBookService
+        {
+            SubmitRatingException = new InvalidBookRatingException("Siz bu kitobga allaqachon baho qoldirgansiz."),
+        };
+        var controller = new BooksController(bookService, new FakeBookSearchService(new PagedResult<BookSearchResultDto>([], 1, 10, 0)))
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(
+                    [
+                        new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                    ], authenticationType: "Test")),
+                },
+            },
+        };
+
+        var response = await controller.SubmitRating(
+            bookId,
+            new CreateBookRatingRequest(5, "Ikkinchi izoh"),
+            CancellationToken.None);
+
+        var problemResult = Assert.IsType<ObjectResult>(response.Result);
+        var problem = Assert.IsType<ProblemDetails>(problemResult.Value);
+        Assert.Equal(StatusCodes.Status400BadRequest, problemResult.StatusCode);
+        Assert.Equal("Reyting yuborilmadi.", problem.Title);
+        Assert.Equal("Siz bu kitobga allaqachon baho qoldirgansiz.", problem.Detail);
+    }
+
     private sealed class FakeBookSearchService(PagedResult<BookSearchResultDto> searchResults) : IBookSearchService
     {
         public string? LastQuery { get; private set; }
@@ -65,6 +104,8 @@ public sealed class BooksControllerTests
 
     private sealed class FakeBookService : IBookService
     {
+        public InvalidBookRatingException? SubmitRatingException { get; init; }
+
         public Task<PagedResult<BookListItemDto>> GetBooksAsync(
             PaginationQuery pagination,
             CancellationToken cancellationToken) =>
@@ -97,7 +138,14 @@ public sealed class BooksControllerTests
         public Task<BookDetailsDto> SubmitRatingAsync(
             Guid bookId,
             SubmitBookRatingCommand command,
-            CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken)
+        {
+            if (SubmitRatingException is not null)
+            {
+                throw SubmitRatingException;
+            }
+
             throw new NotSupportedException();
+        }
     }
 }

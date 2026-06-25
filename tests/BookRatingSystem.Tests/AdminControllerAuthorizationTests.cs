@@ -10,6 +10,8 @@ public sealed class AdminControllerAuthorizationTests
     [InlineData("GetUsers")]
     [InlineData("GetRatings")]
     [InlineData("GetDashboard")]
+    [InlineData("AcceptRating")]
+    [InlineData("BanRating")]
     public void Admin_read_actions_require_admin_policy(string actionName)
     {
         var controllerType = Type.GetType(

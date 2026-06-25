@@ -1,5 +1,7 @@
+using BookRatingSystem.Api.Contracts;
 using BookRatingSystem.Application.Admin;
 using BookRatingSystem.Application.Common;
+using BookRatingSystem.Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,7 +10,9 @@ namespace BookRatingSystem.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-public sealed class AdminController(IAdminReadService adminReadService) : ControllerBase
+public sealed class AdminController(
+    IAdminReadService adminReadService,
+    IAdminRatingModerationService adminRatingModerationService) : ControllerBase
 {
     [HttpGet("books")]
     [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
@@ -56,5 +60,58 @@ public sealed class AdminController(IAdminReadService adminReadService) : Contro
     {
         var ratings = await adminReadService.GetRatingsAsync(new PaginationQuery(page, pageSize), cancellationToken);
         return Ok(ratings);
+    }
+
+    [HttpPost("ratings/{ratingId:guid}/accept")]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AcceptRating(Guid ratingId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await adminRatingModerationService.AcceptRatingAsync(ratingId, cancellationToken);
+            return NoContent();
+        }
+        catch (BookRatingNotFoundException exception)
+        {
+            return RatingNotFound(exception.RatingId);
+        }
+    }
+
+    [HttpPost("ratings/{ratingId:guid}/ban")]
+    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> BanRating(
+        Guid ratingId,
+        BanBookRatingRequest? request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await adminRatingModerationService.BanRatingAsync(ratingId, request?.BanReason, cancellationToken);
+            return NoContent();
+        }
+        catch (BookRatingNotFoundException exception)
+        {
+            return RatingNotFound(exception.RatingId);
+        }
+        catch (InvalidBookRatingException exception)
+        {
+            return Problem(
+                title: "Reyting moderatsiyasi bajarilmadi.",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+    }
+
+    private ActionResult RatingNotFound(Guid ratingId)
+    {
+        return Problem(
+            title: "Reyting topilmadi.",
+            detail: $"Id qiymati '{ratingId}' boʻlgan reyting topilmadi.",
+            statusCode: StatusCodes.Status404NotFound);
     }
 }

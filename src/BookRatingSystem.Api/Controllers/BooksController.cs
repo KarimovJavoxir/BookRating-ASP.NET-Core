@@ -217,7 +217,7 @@ public sealed class BooksController(
         catch (InvalidBookRatingException exception)
         {
             return Problem(
-                title: "Reyting qiymati notoʻgʻri.",
+                title: "Reyting yuborilmadi.",
                 detail: exception.Message,
                 statusCode: StatusCodes.Status400BadRequest);
         }

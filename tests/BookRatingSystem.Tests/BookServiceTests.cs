@@ -377,6 +377,48 @@ public class BookServiceTests
     }
 
     [Fact]
+    public async Task SubmitRatingAsync_rejects_second_rating_from_same_user_for_same_book()
+    {
+        var now = new DateTimeOffset(2026, 6, 25, 9, 0, 0, TimeSpan.Zero);
+        var userId = Guid.Parse("10000000-0000-0000-0000-000000000041");
+        var book = Book.Create(
+            Guid.Parse("bcbcbcbc-bcbc-bcbc-bcbc-bcbcbcbcbcbc"),
+            "Bir marta izoh testi",
+            "A. Muallif",
+            "Dasturlash",
+            null,
+            2026,
+            null,
+            now.AddDays(-1));
+        book.Ratings.Add(BookRating.Create(
+            Guid.Parse("20000000-0000-0000-0000-000000000041"),
+            book.Id,
+            userId,
+            4,
+            "Oldingi izoh",
+            now.AddMinutes(-5),
+            BookRatingStatus.New));
+        var unitOfWork = new FakeUnitOfWork();
+        var indexingService = new FakeBookIndexingService();
+        var service = CreateBookService(
+            new FakeBookRepository(book),
+            unitOfWork,
+            new FixedClock(now),
+            indexingService);
+
+        var exception = await Assert.ThrowsAsync<InvalidBookRatingException>(() =>
+            service.SubmitRatingAsync(
+                book.Id,
+                new SubmitBookRatingCommand(userId, 5, "Ikkinchi izoh"),
+                CancellationToken.None));
+
+        Assert.Equal("Siz bu kitobga allaqachon baho qoldirgansiz.", exception.Message);
+        Assert.Single(book.Ratings);
+        Assert.Equal(0, unitOfWork.SaveChangesCalls);
+        Assert.Empty(indexingService.IndexedBookIds);
+    }
+
+    [Fact]
     public async Task GetBookByIdAsync_returns_only_verified_recent_ratings()
     {
         var now = new DateTimeOffset(2026, 6, 23, 15, 30, 0, TimeSpan.Zero);

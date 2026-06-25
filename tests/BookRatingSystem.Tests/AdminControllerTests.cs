@@ -1,4 +1,5 @@
 using BookRatingSystem.Api.Controllers;
+using BookRatingSystem.Api.Contracts;
 using BookRatingSystem.Application.Admin;
 using BookRatingSystem.Application.Common;
 using Microsoft.AspNetCore.Mvc;
@@ -21,7 +22,7 @@ public sealed class AdminControllerTests
             AverageRatingInRange: 4.25m,
             RecentRatings: []);
         var service = new FakeAdminReadService(dashboard);
-        var controller = new AdminController(service);
+        var controller = new AdminController(service, new FakeAdminRatingModerationService());
 
         var response = await controller.GetDashboard(from, to, CancellationToken.None);
 
@@ -51,7 +52,7 @@ public sealed class AdminControllerTests
         var service = new FakeAdminReadService(
             new AdminDashboardDto(1, 0, 0, 1, 0, 0, []),
             books: books);
-        var controller = new AdminController(service);
+        var controller = new AdminController(service, new FakeAdminRatingModerationService());
 
         var response = await controller.GetBooks(page: 2, pageSize: 10, CancellationToken.None);
 
@@ -76,7 +77,7 @@ public sealed class AdminControllerTests
                 RatingsCount: 4),
         ], Page: 3, PageSize: 5, TotalCount: 13);
         var service = new FakeAdminReadService(new AdminDashboardDto(0, 1, 0, 0, 0, 0, []), users: users);
-        var controller = new AdminController(service);
+        var controller = new AdminController(service, new FakeAdminRatingModerationService());
 
         var response = await controller.GetUsers(page: 3, pageSize: 5, CancellationToken.None);
 
@@ -105,7 +106,7 @@ public sealed class AdminControllerTests
                 CreatedAt: DateTimeOffset.Parse("2026-06-24T10:00:00Z")),
         ], Page: 4, PageSize: 20, TotalCount: 63);
         var service = new FakeAdminReadService(new AdminDashboardDto(0, 0, 1, 0, 1, 5, []), ratings: ratings);
-        var controller = new AdminController(service);
+        var controller = new AdminController(service, new FakeAdminRatingModerationService());
 
         var response = await controller.GetRatings(page: 4, pageSize: 20, CancellationToken.None);
 
@@ -113,6 +114,40 @@ public sealed class AdminControllerTests
         Assert.Same(ratings, okResult.Value);
         Assert.Equal(4, service.LastRatingsPagination?.Page);
         Assert.Equal(20, service.LastRatingsPagination?.PageSize);
+    }
+
+    [Fact]
+    public async Task AcceptRating_returns_no_content_after_moderation()
+    {
+        var ratingId = Guid.Parse("90909090-9090-9090-9090-909090909090");
+        var moderationService = new FakeAdminRatingModerationService();
+        var controller = new AdminController(
+            new FakeAdminReadService(new AdminDashboardDto(0, 0, 0, 0, 0, 0, [])),
+            moderationService);
+
+        var response = await controller.AcceptRating(ratingId, CancellationToken.None);
+
+        Assert.IsType<NoContentResult>(response);
+        Assert.Equal(ratingId, moderationService.LastAcceptedRatingId);
+    }
+
+    [Fact]
+    public async Task BanRating_returns_no_content_after_moderation()
+    {
+        var ratingId = Guid.Parse("91919191-9191-9191-9191-919191919191");
+        var moderationService = new FakeAdminRatingModerationService();
+        var controller = new AdminController(
+            new FakeAdminReadService(new AdminDashboardDto(0, 0, 0, 0, 0, 0, [])),
+            moderationService);
+
+        var response = await controller.BanRating(
+            ratingId,
+            new BanBookRatingRequest("Spam izoh"),
+            CancellationToken.None);
+
+        Assert.IsType<NoContentResult>(response);
+        Assert.Equal(ratingId, moderationService.LastBannedRatingId);
+        Assert.Equal("Spam izoh", moderationService.LastBanReason);
     }
 
     private sealed class FakeAdminReadService(
@@ -163,6 +198,28 @@ public sealed class AdminControllerTests
             LastFrom = from;
             LastTo = to;
             return Task.FromResult(dashboard);
+        }
+    }
+
+    private sealed class FakeAdminRatingModerationService : IAdminRatingModerationService
+    {
+        public Guid? LastAcceptedRatingId { get; private set; }
+
+        public Guid? LastBannedRatingId { get; private set; }
+
+        public string? LastBanReason { get; private set; }
+
+        public Task AcceptRatingAsync(Guid ratingId, CancellationToken cancellationToken)
+        {
+            LastAcceptedRatingId = ratingId;
+            return Task.CompletedTask;
+        }
+
+        public Task BanRatingAsync(Guid ratingId, string? banReason, CancellationToken cancellationToken)
+        {
+            LastBannedRatingId = ratingId;
+            LastBanReason = banReason;
+            return Task.CompletedTask;
         }
     }
 }

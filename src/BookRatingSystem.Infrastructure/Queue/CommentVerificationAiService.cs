@@ -71,6 +71,7 @@ public sealed class CommentVerificationAiService(
                 """)
         };
 
+        var responseText = "<empty>";
         try
         {
             var response = await chatClient.GetResponseAsync(
@@ -85,14 +86,17 @@ public sealed class CommentVerificationAiService(
                     ResponseFormat = ChatResponseFormat.ForJsonSchema<CommentVerificationResult>()
                 },
                 cancellationToken);
+            responseText = response.Text;
 
-            var result = JsonSerializer.Deserialize<CommentVerificationResult>(response.Text, JsonOptions);
+            var result = JsonSerializer.Deserialize<CommentVerificationResult>(responseText, JsonOptions);
 
             return result is null ? zeroConfidence : NormalizeResult(result);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to verify comment with AI.");
+            
+            logger.LogInformation(responseText);
 
             return zeroConfidence;
         }

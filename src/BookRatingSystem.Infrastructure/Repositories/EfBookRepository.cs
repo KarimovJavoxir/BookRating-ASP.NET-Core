@@ -42,7 +42,13 @@ internal sealed class EfBookRepository(BookRatingDbContext dbContext) : IBookRep
 
         var orderedQuery = query
             .Include(book => book.Ratings)
-            .OrderBy(book => book.Title);
+            .OrderByDescending(book => book.Ratings.Count(rating => rating.Status == BookRatingStatus.Verified) == 0
+                ? 0m
+                : book.Ratings
+                    .Where(rating => rating.Status == BookRatingStatus.Verified)
+                    .Average(rating => (decimal)rating.Value))
+            .ThenByDescending(book => book.Ratings.Count(rating => rating.Status == BookRatingStatus.Verified))
+            .ThenBy(book => book.Title);
 
         return await ToPagedResultAsync(orderedQuery, pagination, cancellationToken);
     }

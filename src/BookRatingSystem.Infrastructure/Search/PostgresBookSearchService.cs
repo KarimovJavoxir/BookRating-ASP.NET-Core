@@ -39,7 +39,13 @@ internal sealed class PostgresBookSearchService(BookRatingDbContext dbContext) :
 
         var totalCount = await queryable.CountAsync(cancellationToken);
         var items = await queryable
-            .OrderBy(book => book.Title)
+            .OrderByDescending(book => book.Ratings.Count(rating => rating.Status == BookRatingStatus.Verified) == 0
+                ? 0m
+                : book.Ratings
+                    .Where(rating => rating.Status == BookRatingStatus.Verified)
+                    .Average(rating => (decimal)rating.Value))
+            .ThenByDescending(book => book.Ratings.Count(rating => rating.Status == BookRatingStatus.Verified))
+            .ThenBy(book => book.Title)
             .Skip(pagination.Skip)
             .Take(pagination.PageSize)
             .Select(book => new BookSearchResultDto(

@@ -35,7 +35,8 @@ internal sealed class MeilisearchBookSearchService(
                 {
                     HitsPerPage = pagination.PageSize,
                     Page = pagination.Page,
-                    Filter = BuildFilter(category)
+                    Filter = BuildFilter(category),
+                    Sort = ["averageRating:desc", "ratingsCount:desc", "title:asc"]
                 },
                 cancellationToken);
 
